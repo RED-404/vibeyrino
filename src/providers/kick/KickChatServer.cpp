@@ -14,10 +14,13 @@
 #include "singletons/Settings.hpp"
 #include "util/BoostJsonWrap.hpp"
 #include "util/PostToThread.hpp"
+#include "widgets/splits/Split.hpp"
 
 #include <QPointer>
+#include <QTimer>
 
 #include <utility>
+#include <vector>
 
 namespace {
 
@@ -54,6 +57,58 @@ KickChatServer::~KickChatServer() = default;
 void KickChatServer::initialize()
 {
     this->initializeSeventvEventApi(getApp()->getSeventvEventAPI());
+
+    getSettings()->kickDeferChatUntilLive.connect(
+        [this](const bool &) { this->scheduleKickDeferChatResync(); },
+        this->signalHolder_);
+    getSettings()->kickDeferChatAlsoWhenTabSelected.connect(
+        [this](const bool &) { this->scheduleKickDeferChatResync(); },
+        this->signalHolder_);
+}
+
+void KickChatServer::scheduleKickDeferChatResync()
+{
+    QTimer::singleShot(0, this, [this] {
+        this->forEachChannel([](KickChannel &channel) {
+            channel.syncLiveChatConnection();
+        });
+    });
+}
+
+namespace {
+
+void applyKickSplitChatFocus(Split *split, bool focused)
+{
+    if (!split || !getSettings()->kickDeferChatUntilLive)
+    {
+        return;
+    }
+
+    const auto channel = split->getSelectedChannel();
+    if (!channel)
+    {
+        return;
+    }
+
+    auto *kickChannel = dynamic_cast<KickChannel *>(channel.get());
+    if (kickChannel)
+    {
+        kickChannel->setChatUiFocused(focused);
+    }
+}
+
+}  // namespace
+
+void KickChatServer::updateSplitKickChatFocus(Split *previous, Split *current)
+{
+    applyKickSplitChatFocus(previous, false);
+    applyKickSplitChatFocus(current, true);
+}
+
+void KickChatServer::refreshSplitKickChatFocus(Split *split)
+{
+    applyKickSplitChatFocus(split, false);
+    applyKickSplitChatFocus(split, true);
 }
 
 std::shared_ptr<KickChannel> KickChatServer::findByRoomID(uint64_t roomID) const
@@ -105,13 +160,18 @@ std::shared_ptr<KickChannel> KickChatServer::findBySlug(
 
 void KickChatServer::forEachChannel(FunctionRef<void(KickChannel &channel)> cb)
 {
+    std::vector<std::shared_ptr<KickChannel>> channels;
+    channels.reserve(this->channelsByRoomID.size());
     for (const auto &[id, weak] : this->channelsByRoomID)
     {
-        auto chan = weak.lock();
-        if (chan)
+        if (auto chan = weak.lock())
         {
-            cb(*chan);
+            channels.emplace_back(std::move(chan));
         }
+    }
+    for (auto &chan : channels)
+    {
+        cb(*chan);
     }
 }
 

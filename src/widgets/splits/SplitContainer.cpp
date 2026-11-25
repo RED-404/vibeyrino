@@ -9,6 +9,7 @@
 #include "common/QLogging.hpp"
 #include "common/WindowDescriptors.hpp"
 #include "debug/AssertInGuiThread.hpp"
+#include "providers/kick/KickChatServer.hpp"
 #include "providers/twitch/TwitchChannel.hpp"
 #include "singletons/Fonts.hpp"
 #include "singletons/Theme.hpp"
@@ -238,6 +239,7 @@ void SplitContainer::addSplit(Split *split)
         {
             this->tab_->newHighlightSourceAdded(split->getChannelView());
         }
+        this->refreshTab();
     });
 
     conns.managedConnect(split->getChannelView().liveStatusChanged, [this]() {
@@ -314,7 +316,13 @@ void SplitContainer::setSelected(Split *split)
         return;
     }
 
+    Split *previous = this->selected_;
     this->selected_ = split;
+
+    if (auto *app = getApp())
+    {
+        app->getKickChatServer()->updateSplitKickChatFocus(previous, split);
+    }
 
     if (Node *node = this->baseNode_->findNodeContainingSplit(split))
     {

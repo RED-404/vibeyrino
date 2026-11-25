@@ -11,6 +11,7 @@
 #include "singletons/WindowManager.hpp"
 #include "util/DebugCount.hpp"
 #include "util/PostToThread.hpp"
+#include "util/VibeyrinoIcon.hpp"
 #include "util/WindowsHelper.hpp"
 #include "widgets/buttons/LabelButton.hpp"
 #include "widgets/buttons/TitlebarButton.hpp"
@@ -272,6 +273,10 @@ BaseWindow::BaseWindow(FlagsEnum<Flags> _flags, QWidget *parent)
 
     this->themeChangedEvent();
 
+#ifndef Q_OS_MACOS
+    this->setWindowIcon(vibeyrinoBrandIcon());
+#endif
+
     if (this->flags_.has(UseSettingsStylesheet))
     {
         QFile styleFile(":/qss/settings.qss");
@@ -281,8 +286,16 @@ BaseWindow::BaseWindow(FlagsEnum<Flags> _flags, QWidget *parent)
             qCWarning(chatterinoWidget) << "Resources not loaded";
         }
         QString stylesheet = QString::fromUtf8(styleFile.readAll());
+        QString ogPlt_Hi,ogPlt_LV,ogPlt_PHT,styleShit;
+            ogPlt_Hi = QColor(QApplication::palette().color(QPalette::Highlight)).name();
+            ogPlt_LV = QColor(QApplication::palette().color(QPalette::LinkVisited)).name();
+            ogPlt_PHT = QColor(QApplication::palette().color(QPalette::PlaceholderText)).name();
+            styleShit = QString("chatterino--TitleLabel, chatterino--SubtitleLabel { color: %1 }\
+                                 chatterino--DescriptionLabel { color: %2 }\
+                                 chatterino--NavigationLabel { color: %3 }")
+                                 .arg(ogPlt_Hi).arg(ogPlt_PHT).arg(ogPlt_LV);
+        stylesheet.prepend(styleShit);
         this->setStyleSheet(stylesheet);
-        this->overrideBackgroundColor_ = QColor("#111111");
     }
 
     DebugCount::increase(DebugObject::BaseWindow);
@@ -562,7 +575,6 @@ void BaseWindow::themeChangedEvent()
     else if (this->flags_.has(UseSettingsStylesheet))
     {
         QPalette palette;
-        palette.setColor(QPalette::Window, QColor("#111"));
         this->setPalette(palette);
     }
     else

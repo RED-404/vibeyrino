@@ -37,6 +37,12 @@ concept IsClient = requires(Client &client, const QByteArray &msg) {
     { client.close() } -> std::same_as<void>;
 };
 
+template <typename Manager>
+concept HasWebsocketHeaders = requires(const Manager &manager) {
+    { manager.websocketHeaders() } -> std::same_as<
+        std::vector<std::pair<std::string, std::string>>>;
+};
+
 }  // namespace liveupdates
 
 template <typename Derived, typename ClientT>
@@ -251,10 +257,15 @@ private:
 
         auto id = this->nextId_++;
         auto client = this->derived()->makeClient();
+        std::vector<std::pair<std::string, std::string>> headers;
+        if constexpr (liveupdates::HasWebsocketHeaders<Derived>)
+        {
+            headers = this->derived()->websocketHeaders();
+        }
         auto hdl = this->pool_->createSocket(
             WebSocketOptions{
                 .url = this->host_,
-                .headers = {},
+                .headers = std::move(headers),
             },
             std::make_unique<BasicPubSubListener<Derived>>(
                 std::weak_ptr{client}, this->derived(), id));

@@ -27,6 +27,7 @@ private:
     void refreshAll();
 
     void refreshList(std::span<uint64_t> userIDs);
+    void refreshPublicLiveStatus();
 
     KickChatServer &chatServer;
 
@@ -34,6 +35,7 @@ private:
     QTimer refreshTimer;
 
     std::vector<uint64_t> immediateChannels;
+    size_t publicLivePollIndex_ = 0;
 };
 
 }  // namespace chatterino

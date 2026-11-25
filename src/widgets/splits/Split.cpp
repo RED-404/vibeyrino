@@ -14,6 +14,7 @@
 #include "controllers/notifications/NotificationController.hpp"
 #include "providers/kick/KickAccount.hpp"
 #include "providers/kick/KickChannel.hpp"
+#include "providers/kick/KickChatServer.hpp"
 #include "providers/twitch/ChannelManagement.hpp"
 #include "providers/twitch/TwitchAccount.hpp"
 #include "providers/twitch/TwitchBadges.hpp"
@@ -94,6 +95,20 @@ constexpr int INTERACTIVE_TWITCH_WARNING_REFRESH_OFFSET_MS = 180;
 constexpr int INTERACTIVE_TWITCH_CHATTERS_REFRESH_OFFSET_MS = 300;
 constexpr int INTERACTIVE_TWITCH_ROOM_ID_RETRY_MS = 250;
 
+void refreshKickChatDeferFocusForSplit(Split *split)
+{
+    auto *container = dynamic_cast<SplitContainer *>(split->parentWidget());
+    if (!container || container->getSelectedSplit() != split)
+    {
+        return;
+    }
+
+    if (auto *app = getApp())
+    {
+        app->getKickChatServer()->refreshSplitKickChatFocus(split);
+    }
+}
+
 QElapsedTimer &twitchStartupTimer()
 {
     static QElapsedTimer timer = [] {
@@ -119,7 +134,7 @@ void showTutorialVideo(QWidget *parent, const QString &source,
             BaseWindow::BoundsCheckOnShow,
         },
         parent);
-    window->setWindowTitle("Leafyrino - " + title);
+    window->setWindowTitle("Vibeyrino - " + title);
     window->setAttribute(Qt::WA_DeleteOnClose);
     auto *layout = new QVBoxLayout();
     layout->addWidget(new QLabel(description));
@@ -400,7 +415,7 @@ void Split::addShortcuts()
          [](const std::vector<QString> &) -> QString {
              auto *popup = new DebugPopup;
              popup->setAttribute(Qt::WA_DeleteOnClose);
-             popup->setWindowTitle("Leafyrino - Debug popup");
+             popup->setWindowTitle("Vibeyrino - Debug popup");
              popup->show();
              return "";
          }},
@@ -2060,6 +2075,7 @@ void Split::setChannel(IndirectChannel newChannel)
                 this->updateChannelConnections();
                 this->wireTwitchBanners(this->twitchOverlayChannel());
                 this->scheduleDeferredTwitchRefresh(true);
+                refreshKickChatDeferFocusForSplit(this);
             });
 
         this->wireTwitchBanners(this->twitchOverlayChannel());
@@ -2166,6 +2182,8 @@ void Split::updateChannelConnections()
                 this->getInput().setSendWaitStatus(text);
             });
     }
+
+    refreshKickChatDeferFocusForSplit(this);
 }
 
 void Split::setModerationMode(bool value)

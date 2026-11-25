@@ -166,9 +166,8 @@ int main(int argc, char **argv)
     QCoreApplication::setApplicationName("chatterino");
     QCoreApplication::setApplicationVersion(CHATTERINO_VERSION);
     QCoreApplication::setOrganizationDomain("chatterino.com");
-    // Must match the installed .desktop / Flatpak app-id so the shell
-    // associates this window with Leafyrino's icon (not Chatterino's).
-    QGuiApplication::setDesktopFileName("com.leafyzito.leafyrino");
+    // Must match the installed .desktop entry Icon= line (com.vibeyrino).
+    QGuiApplication::setDesktopFileName("com.vibeyrino");
 #ifdef Q_OS_WIN
     SetCurrentProcessExplicitAppUserModelID(
         Version::instance().appUserModelID().c_str());
@@ -242,20 +241,20 @@ int main(int argc, char **argv)
         }
 
         qCInfo(chatterinoApp).noquote()
-            << "Leafyrino Qt SSL library build version:"
+            << "Vibeyrino Qt SSL library build version:"
             << QSslSocket::sslLibraryBuildVersionString();
         qCInfo(chatterinoApp).noquote()
-            << "Leafyrino Qt SSL library version:"
+            << "Vibeyrino Qt SSL library version:"
             << QSslSocket::sslLibraryVersionString();
 #if QT_VERSION >= QT_VERSION_CHECK(6, 1, 0)
         qCInfo(chatterinoApp).noquote()
-            << "Leafyrino Qt SSL active backend:" << QSslSocket::activeBackend()
+            << "Vibeyrino Qt SSL active backend:" << QSslSocket::activeBackend()
             << "of" << QSslSocket::availableBackends().join(", ");
 #    if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
-        qCInfo(chatterinoApp) << "Leafyrino Qt SSL active backend features:"
+        qCInfo(chatterinoApp) << "Vibeyrino Qt SSL active backend features:"
                               << QSslSocket::supportedFeatures();
 #    endif
-        qCInfo(chatterinoApp) << "Leafyrino Qt SSL active backend protocols:"
+        qCInfo(chatterinoApp) << "Vibeyrino Qt SSL active backend protocols:"
                               << QSslSocket::supportedProtocols();
 #endif
 
@@ -270,8 +269,8 @@ int main(int argc, char **argv)
                     << "Failed to apply the pending settings restore:"
                     << restored.error();
                 QMessageBox::warning(
-                    nullptr, QStringLiteral("Leafyrino - Restore failed"),
-                    QStringLiteral("Leafyrino couldn't restore your settings."
+                    nullptr, QStringLiteral("Vibeyrino - Restore failed"),
+                    QStringLiteral("Vibeyrino couldn't restore your settings."
                                    "\n\n%1")
                         .arg(restored.error()));
             }

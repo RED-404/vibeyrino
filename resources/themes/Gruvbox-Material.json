@@ -1,0 +1,133 @@
+{
+  "$schema": "../../docs/ChatterinoTheme.schema.json",
+  "metadata": {
+    "iconTheme": "light"
+  },
+  "colors": {
+    "accent": "#7daea3",
+    "messages": {
+      "backgrounds": {
+        "alternate": "#3c3836",
+        "regular": "#282828"
+      },
+      "disabled": "#99282828",
+      "highlightAnimationEnd": "#00d4be98",
+      "highlightAnimationStart": "#6ed4be98",
+      "selection": "#407daea3",
+      "textColors": {
+        "caret": "#d4be98",
+        "chatPlaceholder": "#7c6f64",
+        "link": "#7daea3",
+        "regular": "#d4be98",
+        "system": "#bdae93"
+      }
+    },
+    "overlayMessages": {
+      "backgrounds": {
+        "alternate": "#32000000",
+        "regular": "transparent"
+      },
+      "disabled": "#64000000",
+      "selection": "#407daea3",
+      "textColors": {
+        "caret": "#d4be98",
+        "chatPlaceholder": "#7c6f64",
+        "link": "#7daea3",
+        "regular": "#d4be98",
+        "system": "#bdae93"
+      },
+      "background": "#000"
+    },
+    "scrollbars": {
+      "background": "#00000000",
+      "thumb": "#504945",
+      "thumbSelected": "#665c54"
+    },
+    "splits": {
+      "background": "#1e1e1e",
+      "dropPreview": "#307daea3",
+      "dropPreviewBorder": "#7daea3",
+      "dropTargetRect": "#007daea3",
+      "dropTargetRectBorder": "#007daea3",
+      "header": {
+        "background": "#3c3836",
+        "border": "#504945",
+        "focusedBackground": "#504945",
+        "focusedBorder": "#665c54",
+        "focusedText": "#d8a657",
+        "text": "#d4be98"
+      },
+      "input": {
+        "background": "#3c3836",
+        "backgroundPulse": "#3c4836",
+        "searchFailText": "#ea6962",
+        "searchHighlightBackground": "#5089b482",
+        "text": "#d4be98"
+      },
+      "messageSeperator": "#504945",
+      "resizeHandle": "#707daea3",
+      "resizeHandleBackground": "#207daea3"
+    },
+    "tabs": {
+      "liveIndicator": "#ea6962",
+      "rerunIndicator": "#d8a657",
+      "dividerLine": "#504945",
+      "highlighted": {
+        "backgrounds": {
+          "hover": "#3c3836",
+          "regular": "#3c3836",
+          "unfocused": "#3c3836"
+        },
+        "line": {
+          "hover": "#ea6962",
+          "regular": "#ea6962",
+          "unfocused": "#ea6962"
+        },
+        "text": "#d4be98"
+      },
+      "newMessage": {
+        "backgrounds": {
+          "hover": "#3c3836",
+          "regular": "#3c3836",
+          "unfocused": "#3c3836"
+        },
+        "line": {
+          "hover": "#7c6f64",
+          "regular": "#7c6f64",
+          "unfocused": "#7c6f64"
+        },
+        "text": "#d4be98"
+      },
+      "regular": {
+        "backgrounds": {
+          "hover": "#282828",
+          "regular": "#282828",
+          "unfocused": "#282828"
+        },
+        "line": {
+          "hover": "#665c54",
+          "regular": "#665c54",
+          "unfocused": "#665c54"
+        },
+        "text": "#bdae93"
+      },
+      "selected": {
+        "backgrounds": {
+          "hover": "#504945",
+          "regular": "#504945",
+          "unfocused": "#504945"
+        },
+        "line": {
+          "hover": "#7daea3",
+          "regular": "#7daea3",
+          "unfocused": "#7daea3"
+        },
+        "text": "#d8a657"
+      }
+    },
+    "window": {
+      "background": "#1e1e1e",
+      "text": "#d4be98"
+    }
+  }
+}

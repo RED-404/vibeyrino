@@ -24,6 +24,7 @@ struct YouTubeLiveStream {
     QString thumbnailUrl;
     int viewerCount = -1;
     bool isLive = false;
+    bool isScheduled = false;
 };
 
 struct YouTubeMetadata {

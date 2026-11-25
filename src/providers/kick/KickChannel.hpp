@@ -118,6 +118,12 @@ public:
     bool hasHighRateLimit() const override;
     bool isLive() const override;
 
+    bool isLiveChatConnected() const;
+    void setChatUiFocused(bool focused);
+    void syncLiveChatConnection();
+    void refreshLiveStatusFromApi();
+    void applyPublicLiveStatus(bool isLive);
+
     struct StreamData {
         bool isLive = false;
         QString title;
@@ -158,6 +164,7 @@ private:
 
     void resolveChannelInfo();
     void setUserInfo(UserInit init);
+    bool wantsLiveChatConnection() const;
 
     size_t maxBurstMessages() const;
     std::chrono::milliseconds minMessageOffset() const;
@@ -214,6 +221,8 @@ private:
 
     StreamData streamData_;
     bool streamDataLoaded_ = false;
+    bool liveChatJoined_ = false;
+    bool chatUiFocused_ = false;
 
     std::map<unsigned, ImagePtr> subBadgeImages_;
     std::unordered_map<unsigned, EmotePtr> subBadges_;

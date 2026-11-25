@@ -4,6 +4,7 @@
 
 #include "widgets/helper/SettingsDialogTab.hpp"
 
+#include "util/VibeyrinoIcon.hpp"
 #include "widgets/dialogs/SettingsDialog.hpp"
 #include "widgets/settingspages/SettingsPage.hpp"
 
@@ -27,7 +28,7 @@ SettingsDialogTab::SettingsDialogTab(SettingsDialog *_dialog,
 
     this->setCursor(QCursor(Qt::PointingHandCursor));
 
-    this->setStyleSheet("color: #FFF");
+    this->setStyleSheet("");
 }
 
 void SettingsDialogTab::setSelected(bool _selected)
@@ -63,6 +64,7 @@ SettingsPage *SettingsDialogTab::createdPage() const
 void SettingsDialogTab::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
+    QPainter ppcolor;
 
     QStyleOption opt;
     opt.initFrom(this);
@@ -71,8 +73,26 @@ void SettingsDialogTab::paintEvent(QPaintEvent *)
 
     int iconSize = 20 * this->scale();
     int pad = (this->height() - iconSize) / 2;
-    QPixmap pixmap = this->ui_.icon.pixmap(
-        QSize(this->height() - pad * 2, this->height() - pad * 2));
+    const QSize pixmapSize(this->height() - pad * 2, this->height() - pad * 2);
+    QPixmap pixmap;
+    if (this->id_ == SettingsTabId::Vibeyrino)
+    {
+        pixmap = vibeyrinoBrandPixmap();
+        if (pixmap.size() != pixmapSize)
+        {
+            pixmap = pixmap.scaled(pixmapSize, Qt::KeepAspectRatio,
+                                   Qt::SmoothTransformation);
+        }
+    }
+    else
+    {
+        pixmap = this->ui_.icon.pixmap(pixmapSize);
+        ppcolor.begin(&pixmap);
+        ppcolor.setCompositionMode(QPainter::CompositionMode_SourceIn);
+        ppcolor.fillRect(pixmap.rect(),
+                         this->palette().color(QPalette::Text));
+        ppcolor.end();
+    }
 
     painter.drawPixmap(pad, pad, pixmap);
 

@@ -5,6 +5,7 @@
 #include "widgets/Notebook.hpp"
 
 #include "Application.hpp"
+#include "providers/youtube/YouTubeChatServer.hpp"
 #include "common/Args.hpp"
 #include "common/QLogging.hpp"
 #include "controllers/accounts/AccountController.hpp"
@@ -32,6 +33,7 @@
 #include <QLayout>
 #include <QList>
 #include <QStandardPaths>
+#include <QTimer>
 #include <QUuid>
 #include <QWheelEvent>
 #include <QWidget>
@@ -42,6 +44,44 @@
 #include <utility>
 
 namespace chatterino {
+
+namespace {
+
+bool tabContainsSlashChannel(const NotebookTab *tab)
+{
+    const auto *sc = dynamic_cast<const SplitContainer *>(tab->page);
+    if (sc == nullptr)
+    {
+        return false;
+    }
+
+    for (auto *split : sc->getSplits())
+    {
+        if (split->getChannel()->getName().startsWith(u'/'))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool notebookTabVisibleInLiveOnlyMode(const NotebookTab *tab)
+{
+    if (tab->isLive())
+    {
+        return true;
+    }
+
+    if (!getSettings()->alwaysShowSlashChannelTabsInLiveOnly.getValue())
+    {
+        return false;
+    }
+
+    return tabContainsSlashChannel(tab);
+}
+
+}  // namespace
 
 Notebook::Notebook(QWidget *parent)
     : BaseWidget(parent)
@@ -376,6 +416,21 @@ void Notebook::select(QWidget *page, bool focusPage, bool recordInHistory)
     }
 
     this->selectedPage_ = page;
+
+    if (page != nullptr)
+    {
+        if (auto *sc = dynamic_cast<SplitContainer *>(page))
+        {
+            if (auto item = this->findItem(page); item.has_value())
+            {
+                if (auto *app = getApp())
+                {
+                    app->getYouTubeChatServer()->refreshOfflineYouTubeOnLiveTabFocus(
+                        sc, item->tab);
+                }
+            }
+        }
+    }
 
     this->performLayout();
     this->updateTabVisibility();
@@ -1260,6 +1315,7 @@ void Notebook::paintEvent(QPaintEvent *event)
     auto scale = this->scale();
 
     QPainter painter(this);
+    painter.fillRect(this->geometry(), this->theme->window.background);
     if (this->tabLocation_ == NotebookTabLocation::Top ||
         this->tabLocation_ == NotebookTabLocation::Bottom)
     {
@@ -1478,7 +1534,7 @@ SplitNotebook::SplitNotebook(Window *parent)
             {
                 case NotebookTabVisibility::LiveOnly:
                     this->setTabVisibilityFilter([](const NotebookTab *tab) {
-                        return tab->isLive();
+                        return notebookTabVisibleInLiveOnlyMode(tab);
                     });
                     break;
                 case NotebookTabVisibility::AllTabs:
@@ -1488,6 +1544,16 @@ SplitNotebook::SplitNotebook(Window *parent)
             }
         },
         this->signalHolder_, true);
+
+    getSettings()->alwaysShowSlashChannelTabsInLiveOnly.connect(
+        [this](bool, auto) {
+            if (getSettings()->tabVisibility.getEnum() ==
+                NotebookTabVisibility::LiveOnly)
+            {
+                QTimer::singleShot(0, this, [this] { this->refresh(); });
+            }
+        },
+        this->signalHolder_, false);
 
     this->signalHolder_.managedConnect(
         getApp()->getWindows()->selectSplit, [this](Split *split) {

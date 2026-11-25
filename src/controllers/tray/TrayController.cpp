@@ -5,6 +5,7 @@
 #include "singletons/Settings.hpp"
 #include "singletons/Toasts.hpp"
 #include "singletons/WindowManager.hpp"
+#include "util/VibeyrinoIcon.hpp"
 
 #include <QAction>
 #include <QApplication>
@@ -110,7 +111,7 @@ void TrayController::hideToTray()
         if (this->trayIcon_ != nullptr && QSystemTrayIcon::supportsMessages())
         {
             this->trayIcon_->showMessage(
-                QStringLiteral("Leafyrino is still running"),
+                QStringLiteral("Vibeyrino is still running"),
                 QStringLiteral(
                     "You can disable this feature from the settings."),
                 QSystemTrayIcon::Information, 7000);
@@ -186,13 +187,12 @@ void TrayController::ensureTrayIcon()
         return;
     }
 
-    this->trayIcon_ =
-        new QSystemTrayIcon(QIcon(QStringLiteral(":/icon.ico")), this);
-    this->trayIcon_->setToolTip(QStringLiteral("Leafyrino"));
+    this->trayIcon_ = new QSystemTrayIcon(vibeyrinoBrandIcon(), this);
+    this->trayIcon_->setToolTip(QStringLiteral("Vibeyrino"));
 
     this->menu_ = new QMenu;
     this->openAction_ =
-        this->menu_->addAction(QStringLiteral("Open Leafyrino"));
+        this->menu_->addAction(QStringLiteral("Open Vibeyrino"));
     QObject::connect(this->openAction_, &QAction::triggered, this, [this] {
         this->restoreFromTray();
     });
@@ -233,7 +233,7 @@ void TrayController::ensureTrayIcon()
 
     this->menu_->addSeparator();
     this->quitAction_ =
-        this->menu_->addAction(QStringLiteral("Quit Leafyrino"));
+        this->menu_->addAction(QStringLiteral("Quit Vibeyrino"));
     QObject::connect(this->quitAction_, &QAction::triggered, qApp, [] {
         QApplication::exit(0);
     });

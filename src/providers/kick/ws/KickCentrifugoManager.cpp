@@ -19,6 +19,7 @@
 #include <boost/json.hpp>
 #include <boost/unordered/unordered_flat_set.hpp>
 #include <QPointer>
+#include <QUuid>
 
 #include <utility>
 
@@ -128,6 +129,8 @@ void KickCentrifugoClient::doRefresh()
     this->isRefreshing = true;
     NetworkRequest(u"https://web.kick.com/api/v1/realtime/auth/connection"_s,
                    NetworkRequestType::Post)
+        .header("Origin", "https://kick.com")
+        .header("Referer", "https://kick.com/")
         .json(QJsonObject{{"client_id"_L1, this->clientID}})
         .onSuccess([weak = this->weak_from_this()](const NetworkResult &res) {
             auto self = weak.lock();
@@ -443,6 +446,8 @@ public:
     std::shared_ptr<KickCentrifugoClient> makeClient();
     void checkHeartbeats();
 
+    std::vector<std::pair<std::string, std::string>> websocketHeaders() const;
+
     std::chrono::milliseconds heartbeatInterval = MAX_HEARTBEAT_INTERVAL;
     QTimer heartbeatTimer;
     QString clientID;
@@ -472,7 +477,17 @@ KickCentrifugoManagerPrivate::~KickCentrifugoManagerPrivate()
 std::shared_ptr<KickCentrifugoClient> KickCentrifugoManagerPrivate::makeClient()
 {
     return std::make_shared<KickCentrifugoClient>(
-        this->clientID, getApp()->getKickChatServer());
+        QUuid::createUuid().toString(QUuid::WithoutBraces),
+        getApp()->getKickChatServer());
+}
+
+std::vector<std::pair<std::string, std::string>>
+    KickCentrifugoManagerPrivate::websocketHeaders() const
+{
+    return {
+        {"Origin", "https://kick.com"},
+        {"Referer", "https://kick.com/"},
+    };
 }
 
 void KickCentrifugoManagerPrivate::checkHeartbeats()

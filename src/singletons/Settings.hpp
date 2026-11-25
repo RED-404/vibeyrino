@@ -330,6 +330,9 @@ public:
                                         false};
     BoolSetting youtubeSplitHeaderUseHandle = {
         "/appearance/youtube/splitHeaderUseHandle", false};
+    /// Join YouTube premire / waiting-room chat when playability is not OK yet.
+    BoolSetting youtubeShowScheduledWaitingRooms = {
+        "/leafyrino/youtube/showScheduledWaitingRooms", false};
 
     float getClampedUiScale() const;
     void setClampedUiScale(float value);
@@ -409,6 +412,9 @@ public:
         "/appearance/tabVisibility",
         NotebookTabVisibility::AllTabs,
     };
+    /// When tab visibility is \"Only live tabs\", keep tabs that contain /live, /mentions, etc.
+    BoolSetting alwaysShowSlashChannelTabsInLiveOnly{
+        "/leafyrino/alwaysShowSlashChannelTabsInLiveOnly", true};
     BoolSetting growWrappedNotebookLines = {
         "/appearance/growWrappedNotebookLines",
         false,
@@ -919,6 +925,10 @@ public:
         "/misc/x-7tv/kick/connectionPreference",
         KickConnectionPreference::Default,
     };
+    BoolSetting kickDeferChatUntilLive = {
+        "/misc/x-7tv/kick/deferChatUntilLive", false};
+    BoolSetting kickDeferChatAlsoWhenTabSelected = {
+        "/misc/x-7tv/kick/deferChatAlsoWhenTabSelected", true};
 
     EnumStringSetting<ChatSendProtocol> chatSendProtocol = {
         "/misc/chatSendProtocol", ChatSendProtocol::Default};

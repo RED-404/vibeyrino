@@ -46,6 +46,7 @@ struct KickPrivateChannelInfo {
 
     uint64_t channelID = 0;
     uint64_t followersCount = 0;
+    bool isLive = false;
     QString slug;
     KickPrivateUserInfo user;
     KickPrivateChatroomInfo chatroom;

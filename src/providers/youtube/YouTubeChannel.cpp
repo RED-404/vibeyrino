@@ -186,9 +186,19 @@ void YouTubeChannel::setLive(bool live)
         return;
     }
     this->live_ = live;
-    if (!live)
+    if (live)
     {
-        this->metadataTimer_.stop();
+        this->scheduled_ = false;
+        this->streamData_.isScheduled = false;
+        this->streamData_.isLive = true;
+        this->streamDataChanged.invoke();
+    }
+    else
+    {
+        if (!this->scheduled_)
+        {
+            this->metadataTimer_.stop();
+        }
         this->streamData_.isLive = false;
         this->streamDataChanged.invoke();
     }
@@ -272,12 +282,22 @@ void YouTubeChannel::refreshLiveStream()
             self->applyResolvedName(res->channelName);
             if (res->continuation.isEmpty())
             {
+                self->scheduled_ = false;
+                self->streamData_.isScheduled = false;
                 self->setLive(false);
                 self->addSystemMessage(u"Channel offline."_s);
                 return;
             }
             self->startPolling(*res);
-            self->addSystemMessage(u"Done. Watching the latest live."_s);
+            if (res->isScheduled)
+            {
+                self->addSystemMessage(
+                    u"YouTube scheduled stream waiting room (not live yet)."_s);
+            }
+            else
+            {
+                self->addSystemMessage(u"Done. Watching the latest live."_s);
+            }
         });
 }
 
@@ -297,7 +317,6 @@ void YouTubeChannel::startPolling(const YouTubeLiveStream &stream)
     this->channelId_ = stream.channelId;
     this->applyResolvedName(stream.channelName);
 
-    this->streamData_.isLive = true;
     this->streamData_.title = stream.title;
     this->streamData_.viewerCount = stream.viewerCount;
     this->streamData_.thumbnailUrl = stream.thumbnailUrl;
@@ -305,9 +324,27 @@ void YouTubeChannel::startPolling(const YouTubeLiveStream &stream)
     this->streamData_.displayName =
         stream.author.isEmpty() ? this->displayName_ : stream.author;
 
-    this->setLive(true);
-    this->streamDataChanged.invoke();
-    this->metadataTimer_.start(METADATA_POLL_MS);
+    this->scheduled_ = stream.isScheduled;
+    this->streamData_.isScheduled = stream.isScheduled;
+    this->streamData_.isLive = stream.isLive;
+
+    if (stream.isLive)
+    {
+        this->setLive(true);
+    }
+    else if (stream.isScheduled)
+    {
+        this->live_ = false;
+        this->streamData_.isLive = false;
+        this->liveStatusChanged.invoke();
+        this->streamDataChanged.invoke();
+        this->metadataTimer_.start(METADATA_POLL_MS);
+    }
+    else
+    {
+        this->setLive(true);
+    }
+
     this->poll();
 }
 
@@ -333,7 +370,8 @@ void YouTubeChannel::applyMetadata(const YouTubeMetadata &meta)
 
 void YouTubeChannel::pollMetadata()
 {
-    if (!this->live_ || this->apiKey_.isEmpty() || this->videoId_.isEmpty())
+    if ((!this->live_ && !this->scheduled_) || this->apiKey_.isEmpty() ||
+        this->videoId_.isEmpty())
     {
         return;
     }
@@ -342,7 +380,7 @@ void YouTubeChannel::pollMetadata()
         this->apiKey_, this->clientVersion_, this->videoId_,
         [weak = this->weakFromThis()](const ExpectedStr<YouTubeMetadata> &res) {
             auto self = weak.lock();
-            if (!self || !self->live_)
+            if (!self || (!self->live_ && !self->scheduled_))
             {
                 return;
             }
@@ -361,7 +399,7 @@ void YouTubeChannel::pollMetadata()
                     self->videoId_,
                     [weak](const ExpectedStr<YouTubeMetadata> &watch) {
                         auto self = weak.lock();
-                        if (!self || !self->live_)
+                        if (!self || (!self->live_ && !self->scheduled_))
                         {
                             return;
                         }
@@ -461,6 +499,8 @@ void YouTubeChannel::poll()
             if (ended)
             {
                 self->flushPending();
+                self->scheduled_ = false;
+                self->streamData_.isScheduled = false;
                 self->setLive(false);
                 self->addSystemMessage(u"The YouTube live chat has ended."_s);
                 return;

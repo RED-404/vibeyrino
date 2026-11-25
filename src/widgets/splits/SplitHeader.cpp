@@ -381,6 +381,15 @@ QString formatYouTubeOfflineTooltip(const YouTubeChannel::StreamData &s)
         .arg(youtubeHeaderName(s).toHtmlEscaped());
 }
 
+QString formatYouTubeScheduledTooltip(const YouTubeChannel::StreamData &s,
+                                      QString thumbnail)
+{
+    auto inner = formatYouTubeTooltip(s, thumbnail);
+    return QString("<p style=\"text-align: center;\"><b>Scheduled</b> "
+                   "(waiting room)<br><br>%1</p>")
+        .arg(inner);
+}
+
 auto formatTitle(const TwitchChannel::StreamStatus &s, Settings &settings,
                  const std::vector<HelixMinimalUser> &sharedChatParticipants)
 {
@@ -623,6 +632,15 @@ MultiTooltipRow makeMultiTooltipRow(const MultiChannel::ChildChannel &child,
     {
         const auto &stream = youtube->streamData();
         row.live = stream.isLive;
+        if (stream.isScheduled)
+        {
+            QStringList parts{u"scheduled"_s};
+            if (!stream.title.isEmpty())
+            {
+                parts.push_back(shortenString(stream.title).toHtmlEscaped());
+            }
+            return finish(name % u" - " % parts.join(u" · "));
+        }
         if (!row.live)
         {
             return offline();
@@ -2437,6 +2455,36 @@ void SplitHeader::updateChannelText()
             if (getSettings()->headerViewerCount && stream.viewerCount >= 0)
             {
                 title += " - " + localizeNumbers(stream.viewerCount);
+            }
+        }
+        else if (stream.isScheduled)
+        {
+            if (!stream.thumbnailUrl.isEmpty() &&
+                (!this->lastThumbnail_.isValid() ||
+                 this->lastThumbnail_.elapsed() > THUMBNAIL_MAX_AGE_MS))
+            {
+                NetworkRequest(stream.thumbnailUrl, NetworkRequestType::Get)
+                    .caller(this)
+                    .followRedirects(true)
+                    .onSuccess([this](const auto &result) {
+                        assert(!isAppAboutToQuit());
+
+                        this->thumbnail_ =
+                            QString::fromLatin1(result.getData().toBase64());
+                        this->updateChannelText();
+                    })
+                    .execute();
+                this->lastThumbnail_.restart();
+            }
+            this->tooltipText_ =
+                formatYouTubeScheduledTooltip(stream, this->thumbnail_);
+            if (!stream.title.isEmpty())
+            {
+                title += u" (scheduled)" % shortenString(stream.title);
+            }
+            else
+            {
+                title += u" (scheduled)"_s;
             }
         }
         else

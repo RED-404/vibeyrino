@@ -3,6 +3,7 @@
 #include "common/network/NetworkRequest.hpp"
 #include "common/network/NetworkResult.hpp"
 #include "common/QLogging.hpp"
+#include "singletons/Settings.hpp"
 #include "util/BoostJsonWrap.hpp"
 
 #include <boost/json/parse.hpp>
@@ -238,6 +239,66 @@ int scrapeLiveViewCount(const QString &html)
     }
 }
 
+QString scrapePlayabilityStatus(const QString &html)
+{
+    const auto playerBlob = extractJsonObject(html, u"ytInitialPlayerResponse");
+    if (playerBlob.isEmpty())
+    {
+        return {};
+    }
+
+    const auto utf8 = playerBlob.toUtf8();
+    boost::system::error_code ec;
+    auto parsed =
+        boost::json::parse(std::string_view(utf8.data(), utf8.size()), ec);
+    if (ec)
+    {
+        return {};
+    }
+
+    return BoostJsonValue(parsed)["playabilityStatus"]["status"].toQString();
+}
+
+bool youtubePageIsActivelyLive(const QString &html)
+{
+    const auto status = scrapePlayabilityStatus(html);
+    if (status.isEmpty())
+    {
+        // Missing data: keep historical scrape behaviour.
+        return true;
+    }
+    return status == u"OK"_s;
+}
+
+bool youtubePageIsScheduledWaitingRoom(const QString &html)
+{
+    if (scrapePlayabilityStatus(html) != u"LIVE_STREAM_OFFLINE"_s)
+    {
+        return false;
+    }
+
+    const auto playerBlob = extractJsonObject(html, u"ytInitialPlayerResponse");
+    if (playerBlob.isEmpty())
+    {
+        return false;
+    }
+
+    const auto utf8 = playerBlob.toUtf8();
+    boost::system::error_code ec;
+    auto parsed =
+        boost::json::parse(std::string_view(utf8.data(), utf8.size()), ec);
+    if (ec)
+    {
+        return false;
+    }
+
+    const BoostJsonValue root(parsed);
+    auto slate =
+        root["playabilityStatus"]["liveStreamability"]["liveStreamabilityRenderer"]
+            ["offlineSlate"]["liveStreamOfflineSlateRenderer"];
+    return slate.isObject();
+}
+
 void scrapeStreamMetadata(const QString &html, YouTubeLiveStream &stream)
 {
     const auto playerBlob = extractJsonObject(html, u"ytInitialPlayerResponse");
@@ -250,6 +311,7 @@ void scrapeStreamMetadata(const QString &html, YouTubeLiveStream &stream)
         if (!ec)
         {
             BoostJsonValue root(parsed);
+            const bool activelyLive = youtubePageIsActivelyLive(html);
             auto details = root["videoDetails"];
             auto title = details["title"].toQString();
             if (!title.isEmpty())
@@ -261,7 +323,8 @@ void scrapeStreamMetadata(const QString &html, YouTubeLiveStream &stream)
             {
                 stream.author = author;
             }
-            if (details["isLiveContent"].toBool() || details["isLive"].toBool())
+            if (activelyLive &&
+                (details["isLiveContent"].toBool() || details["isLive"].toBool()))
             {
                 stream.isLive = true;
             }
@@ -286,7 +349,7 @@ void scrapeStreamMetadata(const QString &html, YouTubeLiveStream &stream)
     }
 
     const int viewers = scrapeLiveViewCount(html);
-    if (viewers >= 0)
+    if (viewers >= 0 && youtubePageIsActivelyLive(html))
     {
         stream.viewerCount = viewers;
         stream.isLive = true;
@@ -705,15 +768,48 @@ void YouTubeApi::resolveLiveStream(const QString &channel,
             const auto html = QString::fromUtf8(res.getData());
             auto stream = scrapeLiveStream(html);
             scrapeStreamMetadata(html, stream);
+
+            const bool activelyLive = youtubePageIsActivelyLive(html);
+            const bool scheduledWaitingRoom =
+                youtubePageIsScheduledWaitingRoom(html);
+            const bool allowScheduled =
+                getSettings()->youtubeShowScheduledWaitingRooms.getValue();
+
+            stream.isLive = activelyLive && stream.isLive;
+            stream.isScheduled = false;
+
+            if (!activelyLive)
+            {
+                stream.viewerCount = -1;
+                if (scheduledWaitingRoom && allowScheduled)
+                {
+                    stream.isScheduled = true;
+                }
+                else
+                {
+                    stream.continuation.clear();
+                    stream.isLive = false;
+                }
+            }
+
             if (stream.apiKey.isEmpty())
             {
                 cb(makeUnexpected(
                     u"Could not read YouTube page (missing API key)."_s));
                 return;
             }
-            if (stream.videoId.isEmpty())
+
+            const bool canWatch = activelyLive ||
+                                  (scheduledWaitingRoom && allowScheduled);
+            if (!canWatch || stream.videoId.isEmpty())
             {
                 stream.continuation.clear();
+                cb(std::move(stream));
+                return;
+            }
+
+            if (stream.isScheduled && !stream.continuation.isEmpty())
+            {
                 cb(std::move(stream));
                 return;
             }
@@ -734,9 +830,34 @@ void YouTubeApi::resolveLiveStream(const QString &channel,
                 .onError([cb, stream](const NetworkResult &) {
                     cb(stream);
                 })
-                .onSuccess([cb,
-                            stream](const NetworkResult &popoutRes) mutable {
+                .onSuccess([cb, stream, activelyLive, scheduledWaitingRoom,
+                            allowScheduled](
+                               const NetworkResult &popoutRes) mutable {
                     auto popout = QString::fromUtf8(popoutRes.getData());
+                    const bool popoutLive = youtubePageIsActivelyLive(popout);
+                    const bool popoutScheduled =
+                        youtubePageIsScheduledWaitingRoom(popout);
+
+                    if (popoutLive)
+                    {
+                        stream.isLive = true;
+                        stream.isScheduled = false;
+                    }
+                    else if (popoutScheduled && allowScheduled)
+                    {
+                        stream.isLive = false;
+                        stream.isScheduled = true;
+                    }
+                    else if (!activelyLive &&
+                             !(scheduledWaitingRoom && allowScheduled))
+                    {
+                        stream.continuation.clear();
+                        stream.isLive = false;
+                        stream.isScheduled = false;
+                        cb(std::move(stream));
+                        return;
+                    }
+
                     auto liveContinuation = scrapeLiveChatContinuation(popout);
                     if (!liveContinuation.isEmpty())
                     {

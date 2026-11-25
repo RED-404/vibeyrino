@@ -1,10 +1,35 @@
 #include "providers/youtube/YouTubeChatServer.hpp"
 
 #include "providers/youtube/YouTubeChannel.hpp"
+#include "util/MultiChannel.hpp"
+#include "widgets/helper/NotebookTab.hpp"
+#include "widgets/splits/Split.hpp"
+#include "widgets/splits/SplitContainer.hpp"
 
 namespace {
 
 using namespace chatterino;
+
+void refreshOfflineYouTubeInChannel(const ChannelPtr &channel)
+{
+    if (auto *yt = dynamic_cast<YouTubeChannel *>(channel.get()))
+    {
+        const auto &stream = yt->streamData();
+        if (!stream.isLive && !stream.isScheduled)
+        {
+            yt->refreshLiveStream();
+        }
+        return;
+    }
+
+    if (auto *mc = dynamic_cast<MultiChannel *>(channel.get()))
+    {
+        for (const auto &child : mc->channels())
+        {
+            refreshOfflineYouTubeInChannel(child.channel);
+        }
+    }
+}
 
 QString normalizeName(const QString &name)
 {
@@ -57,6 +82,24 @@ std::shared_ptr<Channel> YouTubeChatServer::getOrCreate(const QString &name)
     this->channelsByName_[normalizeName(name)] = chan;
     chan->refreshLiveStream();
     return chan;
+}
+
+void YouTubeChatServer::refreshOfflineYouTubeOnLiveTabFocus(
+    SplitContainer *container, const NotebookTab *tab)
+{
+    if (!container || !tab || !tab->isLive())
+    {
+        return;
+    }
+
+    for (Split *split : container->getSplits())
+    {
+        if (!split)
+        {
+            continue;
+        }
+        refreshOfflineYouTubeInChannel(split->getChannel());
+    }
 }
 
 }  // namespace chatterino

@@ -22,6 +22,7 @@ enum class SettingsTabId {
     General,
     Moltorino,
     Leafyrino,
+    Vibeyrino,
     Accounts,
     Moderation,
     About,

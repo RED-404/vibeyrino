@@ -4,7 +4,9 @@
 #include "common/QLogging.hpp"
 #include "controllers/accounts/AccountController.hpp"
 #include "providers/kick/KickApi.hpp"
+#include "providers/kick/KickChannel.hpp"
 #include "providers/kick/KickChatServer.hpp"
+#include "singletons/Settings.hpp"
 
 #include <QPointer>
 
@@ -18,6 +20,7 @@ constexpr auto IMMEDIATE_DELAY = 1s;
 constexpr auto REFRESH_INTERVAL = 30s;
 
 constexpr size_t CHUNK_SIZE = 50;
+constexpr size_t PUBLIC_LIVE_POLL_CHUNK = 10;
 
 }  // namespace
 
@@ -71,6 +74,72 @@ void KickLiveController::refreshAll()
         }
     }
     this->refreshList(userIDs);
+    this->refreshPublicLiveStatus();
+}
+
+void KickLiveController::refreshPublicLiveStatus()
+{
+    if (!getSettings()->kickDeferChatUntilLive)
+    {
+        return;
+    }
+
+    std::vector<std::weak_ptr<KickChannel>> channels;
+    channels.reserve(this->chatServer.channelMap().size());
+
+    for (const auto &[roomID, weak] : this->chatServer.channelMap())
+    {
+        auto chan = weak.lock();
+        if (!chan || chan->userID() == 0)
+        {
+            continue;
+        }
+
+        if (chan->isLiveChatConnected())
+        {
+            continue;
+        }
+
+        if (chan->isLive())
+        {
+            chan->syncLiveChatConnection();
+            continue;
+        }
+
+        channels.emplace_back(chan);
+    }
+
+    if (channels.empty())
+    {
+        return;
+    }
+
+    const size_t start = this->publicLivePollIndex_ % channels.size();
+    this->publicLivePollIndex_ =
+        (start + PUBLIC_LIVE_POLL_CHUNK) % channels.size();
+
+    for (size_t i = 0; i < PUBLIC_LIVE_POLL_CHUNK && i < channels.size(); ++i)
+    {
+        auto chan = channels[(start + i) % channels.size()].lock();
+        if (!chan)
+        {
+            continue;
+        }
+
+        KickApi::privateChannelInfo(
+            chan->getName(),
+            [weak = chan->weakFromThis()](
+                const ExpectedStr<KickPrivateChannelInfo> &res) {
+                auto self = weak.lock();
+                if (!self || !res)
+                {
+                    return;
+                }
+
+                self->applyPublicLiveStatus(res->isLive);
+                self->syncLiveChatConnection();
+            });
+    }
 }
 
 void KickLiveController::refreshList(const std::span<uint64_t> userIDs)

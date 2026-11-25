@@ -54,7 +54,7 @@ KickChannel::KickChannel(const QString &name)
 KickChannel::~KickChannel()
 {
     auto *app = getApp();
-    if (app)
+    if (app && this->liveChatJoined_)
     {
         app->getKickChatServer()->liveUpdates().leaveRoom(this->roomID(),
                                                           this->channelID());
@@ -454,6 +454,8 @@ void KickChannel::updateStreamData(const KickChannelInfo &info)
     {
         this->streamDataChanged.invoke();
     }
+
+    this->syncLiveChatConnection();
 }
 
 const KickChannel::StreamData &KickChannel::streamData() const
@@ -597,7 +599,8 @@ void KickChannel::resolveChannelInfo()
                 .slowModeDuration = res->chatroom.slowModeDuration,
                 .followersModeDuration = res->chatroom.followersModeDuration,
             });
-            self->loadChannelHistory();
+            self->applyPublicLiveStatus(res->isLive);
+            self->syncLiveChatConnection();
         });
 }
 
@@ -621,7 +624,7 @@ void KickChannel::setUserInfo(UserInit init)
         auto *srv = getApp()->getKickChatServer();
         srv->registerRoomID(this->roomID(), this->channelID(),
                             this->weakFromThis());
-        srv->liveUpdates().joinRoom(this->roomID(), this->channelID());
+        this->syncLiveChatConnection();
     }
 
     if (oldUserID != this->userID())
@@ -629,6 +632,110 @@ void KickChannel::setUserInfo(UserInit init)
         this->reloadSeventvEmotes(false);
         this->userIDChanged.invoke();
     }
+}
+
+bool KickChannel::isLiveChatConnected() const
+{
+    return this->liveChatJoined_;
+}
+
+bool KickChannel::wantsLiveChatConnection() const
+{
+    if (!getSettings()->kickDeferChatUntilLive)
+    {
+        return true;
+    }
+
+    if (this->streamData_.isLive)
+    {
+        return true;
+    }
+
+    if (getSettings()->kickDeferChatAlsoWhenTabSelected && this->chatUiFocused_)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+void KickChannel::applyPublicLiveStatus(bool isLive)
+{
+    if (this->streamData_.isLive == isLive)
+    {
+        return;
+    }
+
+    this->streamData_.isLive = isLive;
+    this->liveStatusChanged.invoke();
+    this->streamDataChanged.invoke();
+}
+
+void KickChannel::syncLiveChatConnection()
+{
+    if (this->roomID() == 0 || this->channelID() == 0)
+    {
+        return;
+    }
+
+    auto *app = getApp();
+    if (!app)
+    {
+        return;
+    }
+
+    auto *srv = app->getKickChatServer();
+    if (!srv)
+    {
+        return;
+    }
+    const bool want = this->wantsLiveChatConnection();
+
+    if (want && !this->liveChatJoined_)
+    {
+        srv->liveUpdates().joinRoom(this->roomID(), this->channelID());
+        this->liveChatJoined_ = true;
+        this->loadChannelHistory();
+    }
+    else if (!want && this->liveChatJoined_)
+    {
+        srv->liveUpdates().leaveRoom(this->roomID(), this->channelID());
+        this->liveChatJoined_ = false;
+    }
+}
+
+void KickChannel::setChatUiFocused(bool focused)
+{
+    if (this->chatUiFocused_ == focused)
+    {
+        return;
+    }
+
+    this->chatUiFocused_ = focused;
+    this->syncLiveChatConnection();
+
+    if (focused && getSettings()->kickDeferChatUntilLive && !this->isLive() &&
+        !this->liveChatJoined_)
+    {
+        this->refreshLiveStatusFromApi();
+    }
+}
+
+void KickChannel::refreshLiveStatusFromApi()
+{
+    auto weak = this->weakFromThis();
+    KickApi::privateChannelInfo(
+        this->getName(),
+        [weak](const ExpectedStr<KickPrivateChannelInfo> &res) {
+            auto self = weak.lock();
+            if (!self || !res)
+            {
+                return;
+            }
+
+            self->applyPublicLiveStatus(res->isLive);
+            self->syncLiveChatConnection();
+        });
 }
 
 size_t KickChannel::maxBurstMessages() const

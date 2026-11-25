@@ -17,6 +17,7 @@ namespace chatterino {
 class BoostJsonObject;
 class KickLiveUpdates;
 class SeventvEventAPI;
+class Split;
 
 class KickChatServer : public QObject
 {
@@ -60,6 +61,9 @@ public:
 
     std::shared_ptr<const EmoteMap> globalEmotes() const;
 
+    void updateSplitKickChatFocus(Split *previous, Split *current);
+    void refreshSplitKickChatFocus(Split *split);
+
 private:
     void registerRoomID(uint64_t roomID, uint64_t channelID,
                         std::weak_ptr<KickChannel> chan);
@@ -85,6 +89,8 @@ private:
     void onKnownIgnoredMessage(KickChannel *channel, BoostJsonObject data);
 
     void loadGlobalEmotesIfNeeded();
+
+    void scheduleKickDeferChatResync();
 
     boost::unordered_flat_map<uint64_t, std::weak_ptr<KickChannel>>
         channelsByRoomID;

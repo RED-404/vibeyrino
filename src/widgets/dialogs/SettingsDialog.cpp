@@ -24,6 +24,7 @@
 #include "widgets/settingspages/IgnoresPage.hpp"
 #include "widgets/settingspages/KeyboardSettingsPage.hpp"
 #include "widgets/settingspages/LeafyrinoPage.hpp"
+#include "widgets/settingspages/VibeyrinoPage.hpp"
 #include "widgets/settingspages/ModerationPage.hpp"
 #include "widgets/settingspages/MoltorinoPage.hpp"
 #include "widgets/settingspages/NicknamesPage.hpp"
@@ -53,7 +54,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
           parent)
 {
     this->setObjectName("SettingsDialog");
-    this->setWindowTitle("Leafyrino Settings");
+    this->setWindowTitle("Vibeyrino Settings");
     this->setWindowRole(u"chatterino.settings"_s);
     // Disable the ? button in the titlebar until we decide to use it
     this->setWindowFlags(this->windowFlags() &
@@ -255,6 +256,8 @@ void SettingsDialog::addTabs()
     // clang-format off
     this->addTab([]{return new GeneralPage;},          "General",        ":/settings/about.svg", SettingsTabId::General);
     this->addTab([]{return new LeafyrinoPage;},        "Leafyrino",      ":/settings/leafyrino.png", SettingsTabId::Leafyrino);
+    this->addTab([]{return new VibeyrinoPage;},        "Vibeyrino",
+                   ":/icon-vibeyrino.png", SettingsTabId::Vibeyrino);
     this->addTab([]{return new MoltorinoPage;},        "Moltorino",      ":/settings/moltorino.svg", SettingsTabId::Moltorino);
     this->addTab([]{return new TechnorinoPage;},       "Technorino",     technorinoIconPath, SettingsTabId::Technorino);
     this->ui_.tabContainer->addSpacing(16);
@@ -316,13 +319,15 @@ void SettingsDialog::selectTab(SettingsDialogTab *tab, bool byUser)
     if (this->selectedTab_ != nullptr)
     {
         this->selectedTab_->setSelected(false);
-        this->selectedTab_->setStyleSheet("color: #FFF");
+        this->selectedTab_->setStyleSheet("");
     }
 
+    QString tabStyleShit = QString("background: %1; color: %2;")
+        .arg(QColor(QApplication::palette().color(QPalette::Highlight)).name()) // Should this be ::Accent color?
+        .arg(QColor(QApplication::palette().color(QPalette::HighlightedText)).name());
+
     tab->setSelected(true);
-    tab->setStyleSheet(
-        "background: #222; color: #4FC3F7;"  // Should this be same as accent color?
-        "/*border: 1px solid #555; border-right: none;*/");
+    tab->setStyleSheet(tabStyleShit);
     this->selectedTab_ = tab;
     if (byUser)
     {

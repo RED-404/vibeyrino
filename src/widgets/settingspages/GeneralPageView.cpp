@@ -344,7 +344,9 @@ void GeneralPageView::updateNavigationHighlighting()
                       &group == &this->groups_.back()))
         {
             first = false;
-            group.navigationLink->setStyleSheet("color: #00ABF4");
+            QString navStyleShit = QString("color: %1;")
+                .arg(QColor(this->palette().color(QPalette::Highlight)).name()); // Should this be ::Accent color?
+            group.navigationLink->setStyleSheet(navStyleShit);
         }
         else
         {

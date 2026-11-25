@@ -233,6 +233,8 @@ public:
     std::shared_ptr<KickPusherClient> makeClient();
     void checkHeartbeats();
 
+    std::vector<std::pair<std::string, std::string>> websocketHeaders() const;
+
     std::chrono::milliseconds heartbeatInterval = MAX_HEARTBEAT_INTERVAL;
     QTimer heartbeatTimer;
 
@@ -260,6 +262,15 @@ KickPusherManagerPrivate::~KickPusherManagerPrivate()
 std::shared_ptr<KickPusherClient> KickPusherManagerPrivate::makeClient()
 {
     return std::make_shared<KickPusherClient>(getApp()->getKickChatServer());
+}
+
+std::vector<std::pair<std::string, std::string>>
+    KickPusherManagerPrivate::websocketHeaders() const
+{
+    return {
+        {"Origin", "https://kick.com"},
+        {"Referer", "https://kick.com/"},
+    };
 }
 
 void KickPusherManagerPrivate::checkHeartbeats()

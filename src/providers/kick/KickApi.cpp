@@ -253,6 +253,12 @@ KickPrivateChannelInfo::KickPrivateChannelInfo(BoostJsonObject obj)
         this->followersCount =
             QLatin1StringView(followers.toStringView()).toULongLong();
     }
+
+    auto livestream = obj["livestream"];
+    if (livestream.isObject())
+    {
+        this->isLive = livestream.toObject()["is_live"].toBool();
+    }
 }
 
 KickPrivateChannelInfoSmall::KickPrivateChannelInfoSmall(BoostJsonObject obj)

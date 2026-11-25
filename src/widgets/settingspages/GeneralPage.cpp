@@ -289,12 +289,12 @@ void GeneralPage::initLayout(GeneralPageView &layout)
         ->addTo(layout);
 
     SettingWidget::checkbox("Always on top", s.windowTopMost)
-        ->setTooltip("Always keep Leafyrino as the top window.")
+        ->setTooltip("Always keep Vibeyrino as the top window.")
         ->addTo(layout);
 
 #ifdef USEWINSDK
     SettingWidget::checkbox("Start with Windows", s.autorun)
-        ->setTooltip("Start Leafyrino when your computer starts.")
+        ->setTooltip("Start Vibeyrino when your computer starts.")
         ->addTo(layout);
 #endif
     if (!BaseWindow::supportsCustomWindowFrame())
@@ -420,7 +420,7 @@ void GeneralPage::initLayout(GeneralPageView &layout)
             return static_cast<MessageOverflow>(args.index);
         },
         false,
-        "Specify how Leafyrino will handle messages that exceed Twitch "
+        "Specify how Vibeyrino will handle messages that exceed Twitch "
         "message limits");
     layout.addDropdown<std::underlying_type_t<UsernameRightClickBehavior>>(
         "Username right-click behavior",
@@ -437,7 +437,7 @@ void GeneralPage::initLayout(GeneralPageView &layout)
             return static_cast<UsernameRightClickBehavior>(args.index);
         },
         false,
-        "Specify how Leafyrino will handle right-clicking a username in "
+        "Specify how Vibeyrino will handle right-clicking a username in "
         "chat when not holding the modifier.");
     layout.addDropdown<std::underlying_type_t<UsernameRightClickBehavior>>(
         "Username right-click with modifier behavior",
@@ -454,7 +454,7 @@ void GeneralPage::initLayout(GeneralPageView &layout)
             return static_cast<UsernameRightClickBehavior>(args.index);
         },
         false,
-        "Specify how Leafyrino will handle right-clicking a username in "
+        "Specify how Vibeyrino will handle right-clicking a username in "
         "chat when holding down the modifier.");
     layout.addDropdown<std::underlying_type_t<Qt::KeyboardModifier>>(
         "Modifier for alternate right-click action",
@@ -524,7 +524,7 @@ void GeneralPage::initLayout(GeneralPageView &layout)
     SettingWidget::checkbox("Reduce opacity of message history",
                             s.fadeMessageHistory)
         ->setTooltip(
-            "Reduce opacity of messages that were posted before Leafyrino "
+            "Reduce opacity of messages that were posted before Vibeyrino "
             "was started or while re-connecting.")
         ->addTo(layout);
 
@@ -613,7 +613,7 @@ void GeneralPage::initLayout(GeneralPageView &layout)
                             "switching applications.",
                             s.showLastMessageIndicator)
         ->setTooltip("Adds an underline below the most recent message "
-                     "sent before you tabbed out of Leafyrino.")
+                     "sent before you tabbed out of Vibeyrino.")
         ->addTo(layout);
 
     SettingWidget::dropdown("Line style", s.lastMessagePattern)->addTo(layout);
@@ -626,7 +626,7 @@ void GeneralPage::initLayout(GeneralPageView &layout)
 
     SettingWidget::checkbox("Animate", s.animateEmotes)->addTo(layout);
 
-    SettingWidget::checkbox("Animate only when Leafyrino is focused",
+    SettingWidget::checkbox("Animate only when Vibeyrino is focused",
                             s.animationsWhenFocused)
         ->addTo(layout);
 
@@ -717,7 +717,7 @@ void GeneralPage::initLayout(GeneralPageView &layout)
         ->addTo(layout);
     SettingWidget::checkbox("Send activity to BetterTTV", s.sendBTTVActivity)
         ->setTooltip(
-            "When enabled, Leafyrino will signal an activity to BetterTTV "
+            "When enabled, Vibeyrino will signal an activity to BetterTTV "
             "when you send a chat message. This is used for badges, "
             " and personal emotes. When disabled, no activity "
             "is sent and others won't see your cosmetics.")
@@ -754,7 +754,7 @@ void GeneralPage::initLayout(GeneralPageView &layout)
                      "(badges/paints/personal emotes) will get updated.")
         ->addTo(layout);
     SettingWidget::checkbox("Send activity to 7TV", s.sendSevenTVActivity)
-        ->setTooltip("When enabled, Leafyrino will signal an activity to 7TV "
+        ->setTooltip("When enabled, Vibeyrino will signal an activity to 7TV "
                      "when you send a chat message. This is used for badges, "
                      "paints, and personal emotes. When disabled, no activity "
                      "is sent and others won't see your cosmetics.")
@@ -763,7 +763,7 @@ void GeneralPage::initLayout(GeneralPageView &layout)
 
     layout.addTitle("Streamer Mode");
     layout.addDescription(
-        "Leafyrino can automatically change behavior if it detects that any "
+        "Vibeyrino can automatically change behavior if it detects that any "
         "streaming software is running.\nSelect which things you want to "
         "change while streaming");
 
@@ -1762,6 +1762,22 @@ void GeneralPage::initLayout(GeneralPageView &layout)
                      "usually used by default on the web.\n"
                      "- Any: Advertise support for both Pusher and Centrifugo. "
                      "This matches the behaviour on the web.\n")
+        ->addTo(layout);
+
+    SettingWidget::checkbox(
+        "Connect Kick chat only when the channel is live",
+        s.kickDeferChatUntilLive)
+        ->setTooltip(
+            "Skip joining the Kick live chat websocket until the channel "
+            "goes live. Reduces load when you have many Kick tabs open.")
+        ->addTo(layout);
+
+    SettingWidget::checkbox(
+        "…or when the Kick split is selected",
+        s.kickDeferChatAlsoWhenTabSelected)
+        ->setTooltip("Also connect live chat while the split showing this "
+                     "Kick channel is selected in the tab. Only applies when "
+                     "the option above is enabled.")
         ->addTo(layout);
 
     layout.addStretch();

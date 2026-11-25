@@ -796,6 +796,8 @@ set(SOURCE_FILES
         util/FuzzyConvert.cpp
         util/FuzzyConvert.hpp
         util/Helpers.cpp
+        util/VibeyrinoIcon.cpp
+        util/VibeyrinoIcon.hpp
         util/Helpers.hpp
         util/HttpServer.cpp
         util/HttpServer.hpp
@@ -1130,6 +1132,8 @@ set(SOURCE_FILES
         widgets/settingspages/GeneralPageView.hpp
         widgets/settingspages/LeafyrinoPage.cpp
         widgets/settingspages/LeafyrinoPage.hpp
+        widgets/settingspages/VibeyrinoPage.cpp
+        widgets/settingspages/VibeyrinoPage.hpp
         widgets/settingspages/TechnorinoPage.cpp
         widgets/settingspages/TechnorinoPage.hpp
         widgets/settingspages/HighlightingPage.cpp
@@ -1142,6 +1146,8 @@ set(SOURCE_FILES
         widgets/settingspages/KeyboardSettingsPage.hpp
         widgets/settingspages/LeafyrinoPage.cpp
         widgets/settingspages/LeafyrinoPage.hpp
+        widgets/settingspages/VibeyrinoPage.cpp
+        widgets/settingspages/VibeyrinoPage.hpp
         widgets/settingspages/ModerationPage.cpp
         widgets/settingspages/ModerationPage.hpp
         widgets/settingspages/MoltorinoPage.cpp
@@ -1387,7 +1393,7 @@ if (BUILD_APP)
     target_link_libraries(${EXECUTABLE_PROJECT} PUBLIC ${LIBRARY_PROJECT})
 
     set_target_directory_hierarchy(${EXECUTABLE_PROJECT})
-    set_target_properties(${EXECUTABLE_PROJECT} PROPERTIES OUTPUT_NAME "Leafyrino")
+    set_target_properties(${EXECUTABLE_PROJECT} PROPERTIES OUTPUT_NAME "Vibeyrino")
 
     if (WIN32)
         if (WINDEPLOYQT_PATH)
@@ -1474,11 +1480,20 @@ if (BUILD_APP)
                 )
 
         install(FILES ${CMAKE_SOURCE_DIR}/resources/com.chatterino.chatterino.desktop
-                RENAME com.leafyzito.leafyrino.desktop
+                RENAME com.vibeyrino.desktop
                 DESTINATION share/applications
                 )
 
-        install(FILES ${CMAKE_SOURCE_DIR}/resources/icon.png
+        install(FILES ${CMAKE_SOURCE_DIR}/resources/icon-vibeyrino.png
+                RENAME com.vibeyrino.png
+                DESTINATION share/icons/hicolor/256x256/apps
+                )
+        install(FILES ${CMAKE_SOURCE_DIR}/resources/icon-vibeyrino.png
+                RENAME com.vibeyrino.png
+                DESTINATION share/pixmaps
+                )
+        # Older Leafyrino installs still use this icon name.
+        install(FILES ${CMAKE_SOURCE_DIR}/resources/icon-vibeyrino.png
                 RENAME com.leafyzito.leafyrino.png
                 DESTINATION share/icons/hicolor/256x256/apps
                 )
@@ -1581,8 +1596,8 @@ if (APPLE AND BUILD_APP)
     set_target_properties(${EXECUTABLE_PROJECT} PROPERTIES MACOSX_BUNDLE TRUE)
     set_target_properties(${EXECUTABLE_PROJECT}
         PROPERTIES
-        MACOSX_BUNDLE_BUNDLE_NAME "Leafyrino"
-        MACOSX_BUNDLE_GUI_IDENTIFIER "com.leafyzito.leafyrino"
+        MACOSX_BUNDLE_BUNDLE_NAME "Vibeyrino"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.vibeyrino"
         MACOSX_BUNDLE_LONG_VERSION_STRING "${PROJECT_VERSION}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"

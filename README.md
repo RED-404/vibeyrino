@@ -1,109 +1,82 @@
-just a fork of features i like from other forks + [my own features](https://leafyrino.leafyzito.dev/) :)
+# Vibeyrino
 
-Features taken from:
+**Personal, vibecoded Chatterino fork.** Built for my own setup—not a supported product.
 
-- https://github.com/2547techno/technorino/
-- https://github.com/itzAlex/chatterino7
-- https://github.com/EEVA-inc/Moltorino7
+There is **no promise of maintenance, fixes, or replies** to issues or PRs. If something here is useful, **take any patch or idea you want** (MIT license applies; see [LICENSE](LICENSE)).
 
-![chatterinoLogo](https://user-images.githubusercontent.com/41973452/272541622-52457e89-5f16-4c83-93e7-91866c25b606.png)
-Chatterino7 [![GitHub Actions Build (Windows, Ubuntu, MacOS)](https://github.com/seventv/chatterino7/actions/workflows/build.yml/badge.svg?branch=chatterino7)](https://github.com/SevenTV/chatterino7/actions?query=workflow%3ABuild+branch%3Achatterino7) [![Chocolatey Package](https://img.shields.io/chocolatey/v/chatterino7?include_prereleases)](https://chocolatey.org/packages/chatterino7)
-============
+## Credits & lineage
 
-Chatterino7 is a fork of Chatterino 2. This fork mainly contains features that aren't accepted into Chatterino 2, most notably 7TV subscriber features.
+Vibeyrino sits on top of a lot of community work. Thank you to:
 
-### Features of Chatterino7
+| Project | Role |
+| --------| ----- |
+| [Chatterino 2](https://github.com/Chatterino/chatterino2) | Original client |
+| [Chatterino7](https://github.com/SevenTV/chatterino7) | 7TV and related Chatterino2 extensions |
+| [Leafyrino](https://github.com/Leafyzito/leafyrino) | Direct base fork (Kick/YouTube multistream, badges, Leafyrino settings, and more) |
+| [Native Qt settings patches](https://github.com/hekel/chatterino-stuffs) ([`chatterino2-7tv-native-git`](https://github.com/hekel/chatterino-stuffs)) | Lighter settings UI that follows the desktop/Qt style; vendored under [`patches/native-qt/`](patches/native-qt/) |
 
-- 7TV Name Paints
+Leafyrino itself pulls ideas from forks like [Technorino](https://github.com/2547techno/technorino/) and [Moltorino7](https://github.com/EEVA-inc/Moltorino7). Vibeyrino keeps that stack and adds the changes below.
 
-- 7TV Personal Emotes
+## What Vibeyrino adds (on top of Leafyrino)
 
-- 7TV Animated Profile Avatars
+### App & UI
 
-- 4x Images (7TV and FFZ)
+- **Rebrand** to Vibeyrino (binary name, icon, window titles, tray).
+- **Settings → Vibeyrino** — fork-only options (see below).
+- **Gruvbox Soft** and **Gruvbox Material** built-in themes (`resources/themes/`).
+- **Native Qt appearance on Linux** — system Qt style instead of a forced Fusion palette; settings dialogs use trimmed QSS on top of the desktop palette ([`patches/native-qt/`](patches/native-qt/)).
 
-### Screenshots
+### Notebook & tabs
 
-![Example of Personal Emotes](https://user-images.githubusercontent.com/27637025/227032811-837c56eb-7724-431b-b00e-b944c9289dff.png)
-![Example of Paints](https://user-images.githubusercontent.com/27637025/227034147-cb1fcd76-dbae-4878-9551-96ffa64dd1a9.png)
+- **Always show `/live`, `/mentions`, `/watching`, `/whispers`, `/automod` in live-only tab mode** (Settings → Vibeyrino → Notebook).
 
-### Downloads
+### Kick
 
-**Stable builds** can be downloaded from the [releases section](https://github.com/SevenTV/chatterino7/releases/latest).
+- **Kick connection preference** — Pusher, Centrifugo, or Both (Settings → General; restart required).
+- **Defer Kick live chat until the channel is live** — reduces WebSocket load with many tabs.
+- **…or connect while the Kick split is selected** — still defer globally, but join chat when you focus that split (refreshes live status on focus).
 
-To test new features, you can download the **nighly build** [here](https://github.com/SevenTV/chatterino7/releases/tag/nightly-build).
+### YouTube
 
-Windows users can install Chatterino7 [from Chocolatey](https://chocolatey.org/packages/chatterino7).
+- **Live vs scheduled vs offline** — uses YouTube `playabilityStatus` so waiting rooms are not treated as live unless you opt in.
+- **Connect to scheduled waiting rooms** (Settings → Vibeyrino) — join premiere / waiting-room chat; shown as **(scheduled)**; does not count as live for tab filters.
+- **Auto YouTube refresh** when you select a **live** tab that still has **offline** YouTube (including multichannel merges).
+- Leafyrino’s YouTube chat UX (Super Chats, role colors, header refresh button, etc.) remains under **Settings → Leafyrino**.
 
-### Issues
+## Build & install
 
-If you have issues such as crashes or weird behaviour regarding 7TV features, report them [in the issue-section](https://github.com/SevenTV/chatterino7/issues). If you have issues with other features, please report them [in the upstream issue-section](https://github.com/Chatterino/chatterino2/issues).
-
-### Discord
-
-If you don't have a GitHub account and want to report issues or want to join the community you can join the official 7TV Discord using the link here: <https://discord.com/invite/7tv>.
-
-### AVIF Support
-
-When building Chatterino 7, you might not have access to a static build of `libavif`. In that case, you can define `CHATTERINO_NO_AVIF_PLUGIN` in CMake. If you have `qavif.so` from [kimageformats](https://invent.kde.org/frameworks/kimageformats) installed on your system, Chatterino will pick it up and use AVIF images.
-
-## Original Chatterino 2 Readme
-
-Chatterino 2 is a chat client for [Twitch.tv](https://twitch.tv).
-The Chatterino 2 wiki can be found [here](https://wiki.chatterino.com).
-Contribution guidelines can be found [here](https://wiki.chatterino.com/Contributing%20for%20Developers).
-
-## Download
-
-Current releases are available at [https://chatterino.com](https://chatterino.com).
-Windows users can also install Chatterino [from Chocolatey](https://chocolatey.org/packages/chatterino).
-
-## Nightly build
-
-You can download the latest Chatterino 2 build over [here](https://github.com/Chatterino/chatterino2/releases/tag/nightly-build)
-
-You might also need to install the [VC++ Redistributables](https://aka.ms/vs/17/release/vc_redist.x64.exe) from Microsoft if you do not have it installed already.  
-If you still receive an error about `MSVCR120.dll missing`, then you should install the [VC++ 2013 Restributable](https://download.microsoft.com/download/2/E/6/2E61CFA4-993B-4DD4-91DA-3737CD5CD6E3/vcredist_x64.exe).
-
-## Building
-
-To get source code with required submodules run:
-
-```shell
-git clone --recurse-submodules https://github.com/Chatterino/chatterino2.git
+```bash
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j"$(nproc)"
+sudo install -m 755 build/bin/Vibeyrino /usr/bin/Vibeyrino
 ```
 
-or
+Optional Linux desktop entry:
 
-```shell
-git clone https://github.com/Chatterino/chatterino2.git
-cd chatterino2
-git submodule update --init --recursive
+```bash
+sudo install -Dm644 resources/com.chatterino.chatterino.desktop \
+  /usr/share/applications/com.vibeyrino.desktop
+sudo install -Dm644 resources/icon-vibeyrino.png /usr/share/pixmaps/com.vibeyrino.png
 ```
 
-- [Building on Windows](../master/BUILDING_ON_WINDOWS.md)
-- [Building on Windows with vcpkg](../master/BUILDING_ON_WINDOWS_WITH_VCPKG.md)
-- [Building on Linux](../master/BUILDING_ON_LINUX.md)
-- [Building on macOS](../master/BUILDING_ON_MAC.md)
-- [Building on FreeBSD](../master/BUILDING_ON_FREEBSD.md)
+Quit any running Leafyrino/Vibeyrino before replacing the binary.
 
-## Git blame
+### Arch Linux (`PKGBUILD`)
 
-This project has big commits in the history which touch most files while only doing stylistic changes. To improve the output of git-blame, consider setting:
+This repo includes a **`vibeyrino-git`** [PKGBUILD](PKGBUILD) (same layout as [Leafyrino’s AUR package](https://aur.archlinux.org/packages/leafyrino-git)).
 
-```shell
-git config blame.ignoreRevsFile .git-blame-ignore-revs
-```
+1. Push the repo to GitHub and set `_gitrepo` at the top of `PKGBUILD` to your clone URL (default branch is `leafyrino`).
+2. Install build deps, e.g. `sudo pacman -S --needed base-devel git cmake ninja boost rapidjson hunspell libavif libnotify qt6-{base,charts,imageformats,svg} qtkeychain-qt6`
+3. `makepkg -si`
 
-This will ignore all revisions mentioned in the [`.git-blame-ignore-revs`
-file](./.git-blame-ignore-revs). GitHub does this by default.
+For a local checkout without pushing: `makepkg --noextract`, replace `src/vibeyrino` with your tree or use `source=("git+file:///path/to/vibeyrino#branch=leafyrino")` in a copy of the PKGBUILD.
 
-## Code style
+More notes: [VIBERYRINO.md](VIBERYRINO.md).
 
-The code is formatted using [clang-format](https://clang.llvm.org/docs/ClangFormat.html). Our configuration is found in the [.clang-format](.clang-format) file in the repository root directory.
+## Settings & data
 
-For more contribution guidelines, take a look at [the wiki](https://wiki.chatterino.com/Contributing%20for%20Developers/).
+Config and layouts still use the usual Chatterino data dir (e.g. `~/.local/share/chatterino/`), so existing accounts and layouts from Leafyrino/Chatterino generally carry over.
 
-## Doxygen
+## Upstream
 
-Doxygen is used to generate project information daily and is available [here](https://doxygen.chatterino.com).
+An `upstream` remote may point at [Leafyrino](https://github.com/Leafyzito/leafyrino) for reference when merging or diffing. This repo is not meant to replace or compete with Leafyrino or Chatterino7—it's a personal snapshot.

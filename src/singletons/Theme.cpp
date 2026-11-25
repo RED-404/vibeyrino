@@ -326,6 +326,16 @@ const std::vector<ThemeDescriptor> Theme::builtInThemes{
         .name = "Goth",
     },
     {
+        .key = "Gruvbox-Material",
+        .path = ":/themes/Gruvbox-Material.json",
+        .name = "Gruvbox Material",
+    },
+    {
+        .key = "Gruvbox-Soft",
+        .path = ":/themes/Gruvbox-Soft.json",
+        .name = "Gruvbox Soft",
+    },
+    {
         .key = "New-Black",
         .path = ":/themes/New-Black.json",
         .name = "New Black",

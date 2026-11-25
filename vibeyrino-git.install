@@ -1,0 +1,8 @@
+post_install() {
+  echo "Vibeyrino installs as /usr/bin/Vibeyrino (conflicts with Leafyrino)."
+  echo "Quit other Chatterino forks before launching. Config: ~/.local/share/chatterino/"
+}
+
+post_upgrade() {
+  post_install "$@"
+}

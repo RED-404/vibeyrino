@@ -18,6 +18,7 @@
 #include "util/CombinePath.hpp"
 #include "util/SelfCheck.hpp"
 #include "util/UnixSignalHandler.hpp"
+#include "util/VibeyrinoIcon.hpp"
 #include "widgets/dialogs/LastRunCrashDialog.hpp"
 
 #include <QApplication>
@@ -56,7 +57,7 @@ QString guiActivationServerName(const Paths &paths)
 {
     const auto hash = QCryptographicHash::hash(
         paths.rootAppDataDirectory.toUtf8(), QCryptographicHash::Sha256);
-    return QStringLiteral("leafyrino-gui-activate-%1")
+    return QStringLiteral("vibeyrino-gui-activate-%1")
         .arg(QString::fromLatin1(hash.toHex().left(24)));
 }
 
@@ -91,7 +92,7 @@ std::unique_ptr<QLocalServer> createGuiActivationServer(const Paths &paths)
             if (!server->listen(serverName))
             {
                 qCWarning(chatterinoApp)
-                    << "Failed to listen for Leafyrino activation requests:"
+                    << "Failed to listen for Vibeyrino activation requests:"
                     << server->errorString();
                 return nullptr;
             }
@@ -99,7 +100,7 @@ std::unique_ptr<QLocalServer> createGuiActivationServer(const Paths &paths)
         else
         {
             qCDebug(chatterinoApp)
-                << "Leafyrino activation server already exists.";
+                << "Vibeyrino activation server already exists.";
             return nullptr;
         }
     }
@@ -164,10 +165,8 @@ void initQt(const Args &args, Settings &settings)
     QApplication::setAttribute(Qt::AA_DontCreateNativeWidgetSiblings);
 #endif
 
-    QApplication::setStyle(QStyleFactory::create("Fusion"));
-
 #ifndef Q_OS_MAC
-    QApplication::setWindowIcon(QIcon(":/icon.ico"));
+    QApplication::setWindowIcon(vibeyrinoBrandIcon());
 #endif
 
 #ifdef Q_OS_MAC
@@ -177,7 +176,6 @@ void initQt(const Args &args, Settings &settings)
     qt_set_sequence_auto_mnemonic(true);
 #endif
 
-    installCustomPalette();
 }
 
 void showLastCrashDialog(const Args &args, const Paths &paths)

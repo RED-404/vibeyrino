@@ -41,6 +41,7 @@ public:
 
     struct StreamData {
         bool isLive = false;
+        bool isScheduled = false;
         QString title;
         int viewerCount = -1;
         QString thumbnailUrl;
@@ -84,6 +85,7 @@ private:
     QString channelId_;
 
     bool live_ = false;
+    bool scheduled_ = false;
     bool resolving_ = false;
     bool firstBatch_ = true;
 
