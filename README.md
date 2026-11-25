@@ -65,7 +65,7 @@ Quit any running Leafyrino/Vibeyrino before replacing the binary.
 
 This repo includes a **`vibeyrino-git`** [PKGBUILD](PKGBUILD) (same layout as [Leafyrino’s AUR package](https://aur.archlinux.org/packages/leafyrino-git)).
 
-1. Push the repo to GitHub and set `_gitrepo` at the top of `PKGBUILD` to your clone URL (default branch is `leafyrino`).
+1. Clone from [`github.com/RED-404/vibeyrino`](https://github.com/RED-404/vibeyrino) (default branch `leafyrino`).
 2. Install build deps, e.g. `sudo pacman -S --needed base-devel git cmake ninja boost rapidjson hunspell libavif libnotify qt6-{base,charts,imageformats,svg} qtkeychain-qt6`
 3. `makepkg -si`
 
