@@ -79,12 +79,14 @@ struct SplitDescriptor {
     uint64_t kickRoomID = 0;
 
     std::vector<ChildChannelDescriptor> children;
+    std::vector<ChildChannelDescriptor> mcStreamlinkPriority;
 
     MultiChannelIndicatorMode mcIndicator = MultiChannelIndicatorMode::None;
     uint32_t mcIndex = 0;
     bool mcTintByPlatform = false;
     bool mcShowTwitchOverlays = false;
     bool mcCombinedViewerCount = false;
+    bool mcStreamlinkFallback = true;
 
     static SplitDescriptor loadFromJSON(const QJsonObject &root);
 

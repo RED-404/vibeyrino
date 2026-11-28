@@ -167,7 +167,6 @@ constexpr std::optional<std::string_view> qmagicenumDisplayName(
             return {};
     }
 }
-
 constexpr std::optional<std::string_view> qmagicenumDisplayName(
     SplitMpsCorner value) noexcept
 {
@@ -854,6 +853,14 @@ public:
     EnumStringSetting<StreamLinkPreferredQuality> preferredQuality = {
         "/external/streamlink/quality",
         StreamLinkPreferredQuality::Choose,
+    };
+    QStringSetting sourcePriority = {
+        "/external/streamlink/sourcePriority",
+        "Kick\nYouTube\nTwitch",
+    };
+    BoolSetting streamlinkFallback = {
+        "/external/streamlink/fallback",
+        true,
     };
     QStringSetting streamlinkOpts = {"/external/streamlink/options", ""};
 

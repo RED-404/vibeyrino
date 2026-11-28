@@ -10,6 +10,7 @@
 #include "providers/kick/KickChatServer.hpp"
 #include "providers/twitch/TwitchIrcServer.hpp"
 #include "providers/youtube/YouTubeChatServer.hpp"
+#include "singletons/Settings.hpp"
 #include "util/Backup.hpp"
 #include "util/Expected.hpp"
 #include "util/MultiChannel.hpp"
@@ -162,6 +163,13 @@ SplitDescriptor SplitDescriptor::loadFromJSON(const QJsonObject &root)
             descriptor.children.emplace_back(
                 ChildChannelDescriptor::fromJson(child.toObject()));
         }
+        const auto streamlinkPriority =
+            data["streamlinkPriority"].toArray();
+        for (const auto child : streamlinkPriority)
+        {
+            descriptor.mcStreamlinkPriority.emplace_back(
+                ChildChannelDescriptor::fromJson(child.toObject()));
+        }
         auto modeStr = data["indicatorMode"].toString();
         descriptor.mcIndicator =
             qmagicenum::enumCast<MultiChannelIndicatorMode>(modeStr).value_or(
@@ -170,6 +178,10 @@ SplitDescriptor SplitDescriptor::loadFromJSON(const QJsonObject &root)
         descriptor.mcTintByPlatform = data["tintByPlatform"].toBool();
         descriptor.mcShowTwitchOverlays = data["showTwitchOverlays"].toBool();
         descriptor.mcCombinedViewerCount = data["combinedViewerCount"].toBool();
+        descriptor.mcStreamlinkFallback =
+            data["streamlinkFallback"].isUndefined()
+                ? getSettings()->streamlinkFallback
+                : data["streamlinkFallback"].toBool();
     }
 
     return descriptor;
@@ -209,12 +221,19 @@ QJsonObject SplitDescriptor::toJson() const
             children.append(child.toJson());
         }
         data.insert("children", children);
+        QJsonArray streamlinkPriority;
+        for (const auto &child : this->mcStreamlinkPriority)
+        {
+            streamlinkPriority.append(child.toJson());
+        }
+        data.insert("streamlinkPriority", streamlinkPriority);
         data.insert("indicatorMode",
                     qmagicenum::enumNameString(this->mcIndicator));
         data.insert("activeIndex", static_cast<int32_t>(this->mcIndex));
         data.insert("tintByPlatform", this->mcTintByPlatform);
         data.insert("showTwitchOverlays", this->mcShowTwitchOverlays);
         data.insert("combinedViewerCount", this->mcCombinedViewerCount);
+        data.insert("streamlinkFallback", this->mcStreamlinkFallback);
     }
     obj.insert("data", data);
 
@@ -298,9 +317,19 @@ IndirectChannel SplitDescriptor::decodeChannel() const
                     specs.emplace_back(*std::move(spec));
                 }
             }
+            QVarLengthArray<MultiChannel::Spec, 4> streamlinkPriority;
+            for (const auto &child : this->mcStreamlinkPriority)
+            {
+                auto spec = MultiChannel::Spec::fromDescriptor(child);
+                if (spec)
+                {
+                    streamlinkPriority.emplace_back(*std::move(spec));
+                }
+            }
             auto ptr = std::make_shared<MultiChannel>(
                 specs, this->mcIndicator, this->mcTintByPlatform,
-                this->mcShowTwitchOverlays, this->mcCombinedViewerCount);
+                this->mcShowTwitchOverlays, this->mcCombinedViewerCount,
+                streamlinkPriority, this->mcStreamlinkFallback);
             ptr->setActiveChannelIndex(this->mcIndex);
             return {std::move(ptr)};
         }
@@ -345,11 +374,18 @@ void SplitDescriptor::setChannel(const IndirectChannel &chan)
                 {
                     this->children.emplace_back(child.descriptor());
                 }
+                this->mcStreamlinkPriority.clear();
+                for (const auto &spec : mc->streamlinkPriority())
+                {
+                    this->mcStreamlinkPriority.emplace_back(
+                        spec.descriptor());
+                }
                 this->mcIndicator = mc->indicatorMode();
                 this->mcIndex = mc->activeChannelIndex();
                 this->mcTintByPlatform = mc->tintByPlatform();
                 this->mcShowTwitchOverlays = mc->showTwitchOverlays();
                 this->mcCombinedViewerCount = mc->combinedViewerCount();
+                this->mcStreamlinkFallback = mc->streamlinkFallback();
             }
         }
         break;

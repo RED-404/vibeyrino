@@ -19,6 +19,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLabel>
+#include <QListWidget>
 #include <QMessageBox>
 #include <QPushButton>
 
@@ -153,6 +154,63 @@ void ExternalToolsPage::initLayout(GeneralPageView &layout)
 
         SettingWidget::dropdown("Preferred quality", s.preferredQuality)
             ->addTo(layout, form);
+
+        auto *fallbackCheck =
+            new QCheckBox("Try fallback sources");
+        fallbackCheck->setChecked(s.streamlinkFallback);
+
+        layout.addWidget(fallbackCheck);
+
+        layout.addWidget(new QLabel("Source priority"));
+        auto *sourcePriority = new QListWidget;
+        sourcePriority->setDragDropMode(QListWidget::InternalMove);
+        sourcePriority->setSelectionMode(QListWidget::SingleSelection);
+        sourcePriority->setMaximumHeight(150);
+        sourcePriority->setEnabled(s.streamlinkFallback);
+
+        const QStringList defaultSourcePriority =
+            s.sourcePriority.getValue().split('\n', Qt::SkipEmptyParts);
+        for (const auto &name : defaultSourcePriority)
+        {
+            sourcePriority->addItem(name);
+        }
+        for (const auto &name :
+             QStringList{QStringLiteral("Kick"), QStringLiteral("YouTube"),
+                         QStringLiteral("Twitch")})
+        {
+            bool found = false;
+            for (int i = 0; i < sourcePriority->count(); i++)
+            {
+                if (sourcePriority->item(i)->text().compare(
+                        name, Qt::CaseInsensitive) == 0)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                sourcePriority->addItem(name);
+            }
+        }
+        layout.addWidget(sourcePriority);
+
+        QObject::connect(fallbackCheck, &QCheckBox::toggled, this,
+                         [&s, sourcePriority](bool enabled) {
+                             s.streamlinkFallback.setValue(enabled);
+                             sourcePriority->setEnabled(enabled);
+                         });
+
+        QObject::connect(sourcePriority->model(),
+                         &QAbstractItemModel::rowsMoved, this,
+                         [&s, sourcePriority] {
+                             QStringList names;
+                             for (int i = 0; i < sourcePriority->count(); i++)
+                             {
+                                 names.append(sourcePriority->item(i)->text());
+                             }
+                             s.sourcePriority.setValue(names.join('\n'));
+                         });
 
         SettingWidget::lineEdit("Additional options", s.streamlinkOpts, "")
             ->addTo(layout, form);

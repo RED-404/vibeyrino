@@ -23,6 +23,7 @@ On Linux, the app is meant to blend with the desktop Qt theme rather than shippi
 | Kick defer + Centrifugo | Settings → **General** (Kick section) |
 | YouTube badges, Super Chats, colors | Settings → **Leafyrino** |
 | Live-only `/live` tabs, YouTube waiting rooms, tab YouTube refresh behavior | Settings → **Vibeyrino** |
+| Streamlink fallback and source priority | Settings → **External Tools**; per-tab overrides in **Right-click → Change channel → Multi** |
 
 ## Build & install
 

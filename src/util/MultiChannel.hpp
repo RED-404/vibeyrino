@@ -37,7 +37,9 @@ public:
     MultiChannel(std::span<const Spec> channels,
                  MultiChannelIndicatorMode indicatorMode,
                  bool tintByPlatform = false, bool showTwitchOverlays = false,
-                 bool combinedViewerCount = false);
+                 bool combinedViewerCount = false,
+                 std::span<const Spec> streamlinkPriority = {},
+                 bool streamlinkFallback = true);
 
     struct ChildChannel {
         Platform platform;
@@ -49,6 +51,10 @@ public:
     };
 
     std::span<const ChildChannel> channels() const;
+    std::span<const Spec> streamlinkPriority() const;
+    void setStreamlinkPriority(std::span<const Spec> priority);
+    bool streamlinkFallback() const;
+    void setStreamlinkFallback(bool enabled);
 
     const QString &getDisplayName() const override;
     const QString &getLocalizedName() const override;
@@ -86,6 +92,7 @@ private:
     QString uniqueName;
     QString computedName;
     std::vector<ChildChannel> channels_;
+    std::vector<Spec> streamlinkPriority_;
     size_t activeChannel_ = 0;
 
     MultiChannelIndicatorMode indicatorMode_ =
@@ -93,6 +100,7 @@ private:
     bool tintByPlatform_ = false;
     bool showTwitchOverlays_ = false;
     bool combinedViewerCount_ = false;
+    bool streamlinkFallback_ = true;
 };
 
 bool platformMatches(MessagePlatform lhs, MultiChannel::Platform rhs) noexcept;

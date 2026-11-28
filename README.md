@@ -43,6 +43,12 @@ Leafyrino itself pulls ideas from forks like [Technorino](https://github.com/254
 - **Auto YouTube refresh** when you select a **live** tab that still has **offline** YouTube (including multichannel merges).
 - Leafyrino’s YouTube chat UX (Super Chats, role colors, header refresh button, etc.) remains under **Settings → Leafyrino**.
 
+### Streamlink
+
+- **Source fallback for multichannel splits** — opening a multichannel split with Streamlink tries the next configured source if the preferred one is unavailable.
+- **Global sortable source priority** — **Settings → External Tools** provides **Try fallback sources** and a drag-sortable platform priority list.
+- **Per-tab Streamlink overrides** — **Right-click → Change channel → Multi** provides an independent fallback checkbox and drag-sortable source priority for that split. These overrides do not change global settings.
+
 ## Build & install
 
 ```bash

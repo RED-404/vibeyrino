@@ -10,6 +10,10 @@
 #include "common/Version.hpp"
 #include "singletons/Settings.hpp"
 #include "singletons/WindowManager.hpp"
+#include "providers/kick/KickChannel.hpp"
+#include "providers/twitch/TwitchChannel.hpp"
+#include "providers/youtube/YouTubeChannel.hpp"
+#include "util/MultiChannel.hpp"
 #include "widgets/dialogs/QualityPopup.hpp"
 #include "widgets/dialogs/StreamLinkErrorPopup.hpp"
 #include "widgets/Notebook.hpp"
@@ -21,6 +25,7 @@
 #include <QProcess>
 #include <QStringBuilder>
 
+#include <array>
 #include <functional>
 
 namespace {
@@ -96,6 +101,74 @@ QProcess *createStreamlinkProcess()
                      });
 
     return p;
+}
+
+void getStreamQualitiesFallback(const QStringList &urls, size_t index,
+                                std::function<void(QString, QStringList)> cb)
+{
+    if (index >= static_cast<size_t>(urls.size()))
+    {
+        if (!urls.isEmpty())
+        {
+            StreamLinkErrorPopup::showError(
+                urls.constLast(), "No configured Streamlink source is available.");
+        }
+        return;
+    }
+
+    auto *p = createStreamlinkProcess();
+    QObject::connect(
+        p,
+        static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(
+            &QProcess::finished),
+        [=](int exitCode, QProcess::ExitStatus) {
+            QString output = QString(p->readAllStandardOutput());
+            if (exitCode == 0)
+            {
+                QString lastLine =
+                    output.trimmed().split('\n').last().trimmed();
+                if (lastLine.startsWith("Available streams: "))
+                {
+                    QStringList options;
+                    QStringList split =
+                        lastLine.right(lastLine.length() - 19).split(", ");
+
+                    for (auto i = split.length() - 1; i >= 0; i--)
+                    {
+                        QString option = split.at(i);
+                        if (option == "best)")
+                        {
+                            option = split.at(--i);
+                            options << option.left(option.length() - 7);
+                        }
+                        else if (option.endsWith(" (worst)"))
+                        {
+                            options << option.left(option.length() - 8);
+                        }
+                        else if (option.endsWith(" (best)"))
+                        {
+                            options << option.left(option.length() - 7);
+                        }
+                        else
+                        {
+                            options << option;
+                        }
+                    }
+
+                    cb(urls.at(static_cast<int>(index)), options);
+                    p->deleteLater();
+                    return;
+                }
+            }
+
+            p->deleteLater();
+            getStreamQualitiesFallback(urls, index + 1, cb);
+        });
+
+    p->setArguments(p->arguments() +
+                    QStringList{urls.at(static_cast<int>(index)),
+                                "--default-stream=KKona"});
+    p->start();
 }
 
 }  // namespace
@@ -187,6 +260,184 @@ void openStreamlink(const QString &url, const QString &quality,
 
     proc->setArguments(arguments);
     proc->start();
+}
+
+namespace {
+
+void openStreamlinkFallback(const QStringList &urls, size_t index,
+                            const QString &quality,
+                            QStringList extraArguments)
+{
+    if (index >= static_cast<size_t>(urls.size()))
+    {
+        if (!urls.isEmpty())
+        {
+            StreamLinkErrorPopup::showError(
+                urls.constLast(), "No configured Streamlink source is available.");
+        }
+        return;
+    }
+
+    auto *proc = createStreamlinkProcess();
+    QObject::connect(
+        proc, &QProcess::finished,
+        [=](int exitCode, QProcess::ExitStatus /*exitStatus*/) {
+            if (exitCode == 0)
+            {
+                proc->deleteLater();
+                return;
+            }
+
+            proc->deleteLater();
+            openStreamlinkFallback(urls, index + 1, quality,
+                                   std::move(extraArguments));
+        });
+
+    auto arguments = proc->arguments()
+                     << std::move(extraArguments)
+                     << urls.at(static_cast<int>(index)) << quality;
+    arguments.removeAll(QString());
+
+    QString additionalOptions = getSettings()->streamlinkOpts.getValue();
+    arguments << QProcess::splitCommand(additionalOptions);
+    proc->setArguments(arguments);
+    proc->start();
+}
+
+}  // namespace
+
+void openStreamlinkForMultiChannelSource(
+    const MultiChannel &channel, MultiChannel::Platform platform)
+{
+    for (const auto &child : channel.channels())
+    {
+        if (child.platform != platform)
+        {
+            continue;
+        }
+
+        switch (platform)
+        {
+            case MultiChannel::Platform::Kick:
+                if (auto *kick =
+                        dynamic_cast<KickChannel *>(child.channel.get()))
+                {
+                    openStreamlinkForChannelOrUrl(
+                        u"https://kick.com/" % kick->slug(), u"");
+                }
+                return;
+            case MultiChannel::Platform::YouTube:
+                if (auto *youtube =
+                        dynamic_cast<YouTubeChannel *>(child.channel.get()))
+                {
+                    openStreamlinkForChannelOrUrl(youtube->streamUrl(), u"");
+                }
+                return;
+            case MultiChannel::Platform::Twitch:
+                openStreamlinkForChannelOrUrl(
+                    u"https://www.twitch.tv/" % child.channel->getName(), u"");
+                return;
+        }
+    }
+}
+
+void openStreamlinkForMultiChannel(const MultiChannel &channel)
+{
+    if (!channel.streamlinkFallback())
+    {
+        if (const auto *active = channel.activeChannel())
+        {
+            openStreamlinkForMultiChannelSource(channel, active->platform);
+        }
+        return;
+    }
+
+    QStringList urls;
+    for (const auto &spec : channel.streamlinkPriority())
+    {
+        for (const auto &child : channel.channels())
+        {
+            if (child.platform != spec.platform ||
+                child.channel->getName().compare(spec.name,
+                                                 Qt::CaseInsensitive) != 0)
+            {
+                continue;
+            }
+
+            switch (spec.platform)
+            {
+                case MultiChannel::Platform::Kick:
+                    if (auto *kick =
+                            dynamic_cast<KickChannel *>(child.channel.get()))
+                    {
+                        urls << u"https://kick.com/" % kick->slug();
+                    }
+                    break;
+                case MultiChannel::Platform::YouTube:
+                    if (auto *youtube =
+                            dynamic_cast<YouTubeChannel *>(child.channel.get()))
+                    {
+                        urls << youtube->streamUrl();
+                    }
+                    break;
+                case MultiChannel::Platform::Twitch:
+                    urls << u"https://www.twitch.tv/" %
+                            child.channel->getName();
+                    break;
+            }
+        }
+    }
+
+    if (urls.isEmpty())
+    {
+        return;
+    }
+
+    auto preferredQuality = getSettings()->preferredQuality.getEnum();
+    if (preferredQuality == StreamLinkPreferredQuality::Choose)
+    {
+        getStreamQualitiesFallback(
+            urls, 0, [=](const QString &successfulUrl,
+                         QStringList qualityOptions) {
+                QualityPopup::showDialog(successfulUrl, qualityOptions);
+            });
+        return;
+    }
+
+    QStringList args;
+    QString quality;
+    QString exclude;
+
+    if (preferredQuality == StreamLinkPreferredQuality::High)
+    {
+        exclude = ">720p30";
+        quality = "high,best";
+    }
+    else if (preferredQuality == StreamLinkPreferredQuality::Medium)
+    {
+        exclude = ">540p30";
+        quality = "medium,best";
+    }
+    else if (preferredQuality == StreamLinkPreferredQuality::Low)
+    {
+        exclude = ">360p30";
+        quality = "low,best";
+    }
+    else if (preferredQuality == StreamLinkPreferredQuality::AudioOnly)
+    {
+        quality = "audio,audio_only";
+    }
+    else
+    {
+        quality = "best";
+    }
+
+    if (!exclude.isEmpty())
+    {
+        args << "--stream-sorting-excludes" << exclude;
+    }
+
+    openStreamlinkFallback(urls, 0, quality, args);
 }
 
 void openStreamlinkForChannelOrUrl(const QString &channelOrUrl,

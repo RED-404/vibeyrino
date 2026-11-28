@@ -2,6 +2,7 @@
 
 ## Unversioned
 
+- Minor: Added sortable global and per-multichannel Streamlink source fallback priority, with per-tab fallback overrides.
 - Minor: Added "Open 7TV user in browser" and "Open channel in browser" (same as left-click) when right-clicking the profile picture in a usercard (#400)
 
 ## 7.5.5-beta.1

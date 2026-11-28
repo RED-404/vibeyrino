@@ -2645,6 +2645,12 @@ void Split::openRewardQueue()
 
 void Split::openInStreamlink()
 {
+    auto root = this->getChannel();
+    if (auto *multiChannel = dynamic_cast<MultiChannel *>(root.get()))
+    {
+        openStreamlinkForMultiChannel(*multiChannel);
+        return;
+    }
     auto chan = this->getSelectedChannel();
     auto *kc = dynamic_cast<KickChannel *>(chan.get());
     if (kc)

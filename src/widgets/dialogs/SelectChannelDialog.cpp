@@ -11,6 +11,7 @@
 #include "providers/twitch/TwitchIrcServer.hpp"
 #include "providers/youtube/YouTubeChatServer.hpp"
 #include "singletons/Fonts.hpp"
+#include "singletons/Settings.hpp"
 #include "singletons/Theme.hpp"
 #include "util/MultiChannel.hpp"
 #include "widgets/BasePopup.hpp"
@@ -355,6 +356,8 @@ SelectChannelDialog::SelectChannelDialog(QWidget *parent)
     {
         ui.multiPage = new QWidget;
         ui.multiView = new QListWidget;
+        ui.multiStreamlinkPriorityView = new QListWidget;
+        ui.multiStreamlinkFallback = new QCheckBox;
         ui.multiIndicatorMode = new QComboBox;
         ui.multiTintByPlatform =
             new QCheckBox("Tint message background by platform");
@@ -390,11 +393,42 @@ SelectChannelDialog::SelectChannelDialog(QWidget *parent)
                                  [this](const MultiChannel::Spec &spec) {
                                      this->ui_.multiView->addItem(
                                          makeMultiChannelItem(spec));
+                                     this->ui_.multiStreamlinkPriorityView
+                                         ->addItem(makeMultiChannelItem(spec));
                                  });
                 diag->show();
             });
             QObject::connect(remove, &QPushButton::clicked, this, [this] {
-                delete this->ui_.multiView->currentItem();
+                auto *current = this->ui_.multiView->currentItem();
+                if (!current)
+                {
+                    return;
+                }
+                QVariant data = current->data(Qt::UserRole);
+                auto *spec = get_if<MultiChannel::Spec>(&data);
+                if (spec)
+                {
+                    for (int i = 0;
+                         i < this->ui_.multiStreamlinkPriorityView->count();
+                         i++)
+                    {
+                        auto *priorityItem =
+                            this->ui_.multiStreamlinkPriorityView->item(i);
+                        QVariant priorityData =
+                            priorityItem->data(Qt::UserRole);
+                        auto *prioritySpec =
+                            get_if<MultiChannel::Spec>(&priorityData);
+                        if (prioritySpec &&
+                            prioritySpec->platform == spec->platform &&
+                            prioritySpec->name.compare(
+                                spec->name, Qt::CaseInsensitive) == 0)
+                        {
+                            delete priorityItem;
+                            break;
+                        }
+                    }
+                }
+                delete current;
             });
         }
 
@@ -405,6 +439,41 @@ SelectChannelDialog::SelectChannelDialog(QWidget *parent)
         ui.multiView->setFrameStyle(QFrame::NoFrame);
         ui.multiView->setSizeAdjustPolicy(QListView::AdjustToContents);
         layout->addWidget(ui.multiView, 1);
+
+        auto *streamlinkPriorityHeader = new QWidget;
+        auto *streamlinkPriorityHeaderLayout =
+            new QHBoxLayout(streamlinkPriorityHeader);
+        streamlinkPriorityHeaderLayout->setContentsMargins({});
+        streamlinkPriorityHeaderLayout->addWidget(
+            new QLabel("Streamlink source priority:"));
+        ui.multiStreamlinkFallback->setText("Try fallback sources");
+        ui.multiStreamlinkFallback->setChecked(
+            getSettings()->streamlinkFallback);
+        ui.multiStreamlinkFallback->setEnabled(true);
+        streamlinkPriorityHeaderLayout->addWidget(
+            ui.multiStreamlinkFallback);
+        streamlinkPriorityHeaderLayout->addStretch();
+        layout->addWidget(streamlinkPriorityHeader);
+
+        ui.multiStreamlinkPriorityView->setEnabled(
+            getSettings()->streamlinkFallback);
+        ui.multiStreamlinkPriorityView->setAutoScroll(true);
+        ui.multiStreamlinkPriorityView->setSelectionMode(
+            QListWidget::SingleSelection);
+        ui.multiStreamlinkPriorityView->setSelectionBehavior(
+            QListWidget::SelectRows);
+        ui.multiStreamlinkPriorityView->setDragDropMode(
+            QListWidget::InternalMove);
+        ui.multiStreamlinkPriorityView->setFrameStyle(QFrame::NoFrame);
+        ui.multiStreamlinkPriorityView->setSizeAdjustPolicy(
+            QListView::AdjustToContents);
+        layout->addWidget(ui.multiStreamlinkPriorityView, 1);
+
+        QObject::connect(ui.multiStreamlinkFallback, &QCheckBox::toggled, this,
+                         [this](bool enabled) {
+                             this->ui_.multiStreamlinkPriorityView->setEnabled(
+                                 enabled);
+                         });
 
         layout->addWidget(new QLabel("Channel indicator:"));
         {
@@ -547,9 +616,16 @@ void SelectChannelDialog::setSelectedChannel(
             const auto *mc = dynamic_cast<const MultiChannel *>(channel.get());
             if (mc)
             {
+                this->ui_.multiView->clear();
+                this->ui_.multiStreamlinkPriorityView->clear();
                 for (const auto &child : mc->channels())
                 {
                     this->ui_.multiView->addItem(makeMultiChannelItem(child));
+                }
+                for (const auto &spec : mc->streamlinkPriority())
+                {
+                    this->ui_.multiStreamlinkPriorityView->addItem(
+                        makeMultiChannelItem(spec));
                 }
                 int indicatorIdx = this->ui_.multiIndicatorMode->findData(
                     QVariant::fromValue(mc->indicatorMode()));
@@ -563,6 +639,11 @@ void SelectChannelDialog::setSelectedChannel(
                 this->ui_.multiCombinedViewerCount->setChecked(
                     mc->combinedViewerCount());
                 this->mcChannelIndex = mc->activeChannelIndex();
+                this->ui_.multiStreamlinkFallback->setChecked(
+                    mc->streamlinkFallback());
+                this->ui_.multiStreamlinkFallback->setEnabled(true);
+                this->ui_.multiStreamlinkPriorityView->setEnabled(
+                    mc->streamlinkFallback());
             }
             this->ui_.notebook->select(this->ui_.multiPage);
         }
@@ -598,6 +679,7 @@ IndirectChannel SelectChannelDialog::getSelectedChannel() const
     if (this->ui_.notebook->isSelected(this->ui_.multiPage))
     {
         QVarLengthArray<MultiChannel::Spec, 4> specs;
+        QVarLengthArray<MultiChannel::Spec, 4> streamlinkPriority;
         for (int i = 0; i < this->ui_.multiView->count(); i++)
         {
             auto *item = this->ui_.multiView->item(i);
@@ -612,13 +694,30 @@ IndirectChannel SelectChannelDialog::getSelectedChannel() const
                 specs.emplace_back(std::move(*spec));
             }
         }
+        for (int i = 0;
+             i < this->ui_.multiStreamlinkPriorityView->count(); i++)
+        {
+            auto *item = this->ui_.multiStreamlinkPriorityView->item(i);
+            if (!item)
+            {
+                continue;
+            }
+            QVariant data = item->data(Qt::UserRole);
+            auto *spec = get_if<MultiChannel::Spec>(&data);
+            if (spec)
+            {
+                streamlinkPriority.emplace_back(std::move(*spec));
+            }
+        }
         auto ptr = std::make_shared<MultiChannel>(
             specs,
             this->ui_.multiIndicatorMode->currentData()
                 .value<MultiChannelIndicatorMode>(),
             this->ui_.multiTintByPlatform->isChecked(),
             this->ui_.multiShowTwitchOverlays->isChecked(),
-            this->ui_.multiCombinedViewerCount->isChecked());
+            this->ui_.multiCombinedViewerCount->isChecked(),
+            streamlinkPriority,
+            this->ui_.multiStreamlinkFallback->isChecked());
         ptr->setActiveChannelIndex(this->mcChannelIndex);
         return {std::move(ptr)};
     }

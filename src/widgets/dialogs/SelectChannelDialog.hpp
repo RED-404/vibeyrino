@@ -97,6 +97,8 @@ private:
         QLineEdit *youtubeName;
 
         QListWidget *multiView;
+        QListWidget *multiStreamlinkPriorityView;
+        QCheckBox *multiStreamlinkFallback;
         QComboBox *multiIndicatorMode;
         QCheckBox *multiTintByPlatform;
         QCheckBox *multiShowTwitchOverlays;

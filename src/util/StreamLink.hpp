@@ -6,6 +6,7 @@
 
 #include <QString>
 #include <QStringList>
+#include "util/MultiChannel.hpp"
 
 #include <stdexcept>
 #include <string>
@@ -40,5 +41,13 @@ inline void openStreamlinkForChannel(const QString &channel,
 {
     openStreamlinkForChannelOrUrl(channel, prefixURL);
 }
+
+// Open the first available source in a multichannel split, using the
+// configured Streamlink source priority and falling back to the next source.
+void openStreamlinkForMultiChannel(const MultiChannel &channel);
+
+// Open one specific platform from a multichannel split.
+void openStreamlinkForMultiChannelSource(
+    const MultiChannel &channel, MultiChannel::Platform platform);
 
 }  // namespace chatterino

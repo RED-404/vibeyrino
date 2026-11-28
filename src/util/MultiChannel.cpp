@@ -6,6 +6,7 @@
 #include "providers/kick/KickChatServer.hpp"
 #include "providers/twitch/TwitchIrcServer.hpp"
 #include "providers/youtube/YouTubeChatServer.hpp"
+#include "singletons/Settings.hpp"
 #include "util/QCompareTransparent.hpp"
 #include "util/QMagicEnum.hpp"
 
@@ -140,12 +141,15 @@ ChildChannelDescriptor MultiChannel::ChildChannel::descriptor() const
 MultiChannel::MultiChannel(std::span<const Spec> channels,
                            MultiChannelIndicatorMode indicatorMode,
                            bool tintByPlatform, bool showTwitchOverlays,
-                           bool combinedViewerCount)
+                           bool combinedViewerCount,
+                           std::span<const Spec> streamlinkPriority,
+                           bool streamlinkFallback)
     : Channel(makeChannelName(channels, false), Type::Multi)
     , indicatorMode_(indicatorMode)
     , tintByPlatform_(tintByPlatform)
     , showTwitchOverlays_(showTwitchOverlays)
     , combinedViewerCount_(combinedViewerCount)
+    , streamlinkFallback_(streamlinkFallback)
 {
     for (const auto &spec : channels)
     {
@@ -184,6 +188,55 @@ MultiChannel::MultiChannel(std::span<const Spec> channels,
             .connections = std::move(connections),
         });
     }
+    if (streamlinkPriority.empty())
+    {
+        this->streamlinkPriority_.reserve(channels.size());
+        const QString value = getSettings()->sourcePriority.getValue();
+        const QStringList platformNames =
+            value.split('\n', Qt::SkipEmptyParts);
+        QSet<QString> added;
+
+        auto platformName = [](MultiChannel::Platform platform) {
+            switch (platform)
+            {
+                case MultiChannel::Platform::Twitch:
+                    return QStringLiteral("Twitch");
+                case MultiChannel::Platform::Kick:
+                    return QStringLiteral("Kick");
+                case MultiChannel::Platform::YouTube:
+                    return QStringLiteral("YouTube");
+            }
+            return QString();
+        };
+
+        for (const auto &name : platformNames)
+        {
+            for (const auto &spec : channels)
+            {
+                if (platformName(spec.platform).compare(name,
+                                                        Qt::CaseInsensitive) ==
+                        0 &&
+                    !added.contains(name.toCaseFolded()))
+                {
+                    this->streamlinkPriority_.push_back(spec);
+                    added.insert(name.toCaseFolded());
+                }
+            }
+        }
+        for (const auto &spec : channels)
+        {
+            if (!added.contains(
+                    platformName(spec.platform).toCaseFolded()))
+            {
+                this->streamlinkPriority_.push_back(spec);
+            }
+        }
+    }
+    else
+    {
+        this->streamlinkPriority_.assign(streamlinkPriority.begin(),
+                                         streamlinkPriority.end());
+    }
     this->refreshDisplayName();
 
     for (size_t i = 0; i < this->channels_.size(); i++)
@@ -218,6 +271,26 @@ const QString &MultiChannel::getLocalizedName() const
 std::span<const MultiChannel::ChildChannel> MultiChannel::channels() const
 {
     return this->channels_;
+}
+
+std::span<const MultiChannel::Spec> MultiChannel::streamlinkPriority() const
+{
+    return this->streamlinkPriority_;
+}
+
+void MultiChannel::setStreamlinkPriority(std::span<const Spec> priority)
+{
+    this->streamlinkPriority_.assign(priority.begin(), priority.end());
+}
+
+bool MultiChannel::streamlinkFallback() const
+{
+    return this->streamlinkFallback_;
+}
+
+void MultiChannel::setStreamlinkFallback(bool enabled)
+{
+    this->streamlinkFallback_ = enabled;
 }
 
 const MultiChannel::ChildChannel *MultiChannel::activeChannel() const
