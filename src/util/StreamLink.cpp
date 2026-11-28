@@ -341,7 +341,7 @@ void openStreamlinkForMultiChannelSource(
     }
 }
 
-void openStreamlinkForMultiChannel(const MultiChannel &channel)
+void openStreamlinkForMultiChannel(MultiChannel &channel)
 {
     if (!channel.streamlinkFallback())
     {
@@ -392,6 +392,9 @@ void openStreamlinkForMultiChannel(const MultiChannel &channel)
     {
         return;
     }
+
+    channel.addSystemMessage(
+        QString("Opening %1 in Streamlink ...").arg(urls.join(" ")));
 
     auto preferredQuality = getSettings()->preferredQuality.getEnum();
     if (preferredQuality == StreamLinkPreferredQuality::Choose)

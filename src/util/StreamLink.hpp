@@ -44,7 +44,7 @@ inline void openStreamlinkForChannel(const QString &channel,
 
 // Open the first available source in a multichannel split, using the
 // configured Streamlink source priority and falling back to the next source.
-void openStreamlinkForMultiChannel(const MultiChannel &channel);
+void openStreamlinkForMultiChannel(MultiChannel &channel);
 
 // Open one specific platform from a multichannel split.
 void openStreamlinkForMultiChannelSource(
